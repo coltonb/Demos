@@ -1,0 +1,13 @@
+canvas {
+    cursor: none;
+    overflow: hidden;
+    background-color: black;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: -999;
+}
+
+input[type="range"] {
+    background-color: red;
+}
