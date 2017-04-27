@@ -1,28 +1,31 @@
-var canvas = document.getElementById('canvas');
-var ctx = canvas.getContext('2d');
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
 
-var widthSlider = document.getElementById('width');
-var maxSlider = document.getElementById('max');
+let widthSlider = document.getElementById('width');
+let maxSlider = document.getElementById('max');
 
-var LINE_WIDTH = 1;
-var MAX_DIST = 100;
+let s = new Audio('siksample.wav');
 
-widthSlider.value = LINE_WIDTH;
-maxSlider.value = MAX_DIST;
+let lineWidth = 1;
+let maxDist = 100;
+let offset = 50;
 
-var points = [];
+widthSlider.value = lineWidth;
+maxSlider.value = maxDist;
+
+let points = [];
 
 const POINT_NUM = 100;
-const POINT_MAX_SPEED = .005;
+const POINT_MAX_SPEED = .25;
 const MOUSE_COLOR = '#ffffff';
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-var mouseX, mouseY;
+let mouseX, mouseY;
 
 // Create POINT_NUM points
-for (var i = 0; i < POINT_NUM; i++) {
+for (let i = 0; i < POINT_NUM; i++) {
     points.push([Math.random()*canvas.width, Math.random()*canvas.height,
                  Math.random()*POINT_MAX_SPEED*2 - POINT_MAX_SPEED,
                  Math.random()*POINT_MAX_SPEED*2 - POINT_MAX_SPEED]);
@@ -30,18 +33,18 @@ for (var i = 0; i < POINT_NUM; i++) {
 
 // Draws lines from point to point and moves the points as well
 function drawLines() {
-    ctx.lineWidth = LINE_WIDTH;
-    for (var i = 0; i < points.length; i++) {
-        for (var x = i; x < points.length; x++) {
-            ctx.strokeStyle = 'hsl('+points[i][0]+', 100%, 50%)';
+    ctx.lineWidth = lineWidth;
+    for (let i = 0; i < points.length; i++) {
+        points[i][0] += points[i][2];
+        points[i][1] += points[i][3];
+        for (let x = i; x < points.length; x++) {
+            ctx.strokeStyle = 'hsl('+(points[i][0] + 180 *
+                               (mouseX / screen.width))+', 100%, 50%)';
+
             drawLine(points[i], points[x]);
 
-            points[i][0] += points[i][2];
-
             if (points[i][0] > canvas.width) points[i][0] = 0;
-            else if (points[i][0] < 0)            points[i][0] = canvas.width;
-
-            points[i][1] += points[i][3];
+            else if (points[i][0] < 0)       points[i][0] = canvas.width;
 
             if (points[i][1] > canvas.height) points[i][1] = 0;
             else if (points[i][1] < 0)        points[i][1] = canvas.height;
@@ -51,7 +54,7 @@ function drawLines() {
 
 // Draws lines to mouse
 function drawToMouse() {
-    for (var i = 0; i < points.length; i++) {
+    for (let i = 0; i < points.length; i++) {
         ctx.strokeStyle = MOUSE_COLOR;
         drawLine(points[i], [mouseX, mouseY]);
     }
@@ -59,11 +62,10 @@ function drawToMouse() {
 
 // Generic draw line function
 function drawLine(posA, posB) {
-        var dist =  Math.sqrt(Math.pow(posA[0] - posB[0], 2) +
+        let dist =  Math.sqrt(Math.pow(posA[0] - posB[0], 2) +
                               Math.pow(posA[1] - posB[1], 2));
-        if (dist > MAX_DIST)
-            return;
-        ctx.globalAlpha = (MAX_DIST - dist) / MAX_DIST;
+        if (dist > maxDist) return;
+        ctx.globalAlpha = (maxDist - dist) / maxDist;
         ctx.beginPath();
         ctx.moveTo(posA[0], posA[1]);
         ctx.lineTo(posB[0], posB[1]);
@@ -79,15 +81,15 @@ document.body.addEventListener('mousemove', function(e){
 // Only works sometimes? May require some hacking to fix
 window.addEventListener('resize', function(){
     canvas.width = window.innerWidth;
-    canvas.hight = window.innerHeight;
+    canvas.height = window.innerHeight;
 });
 
 widthSlider.addEventListener('input', function(){
-    LINE_WIDTH = widthSlider.value;
+    lineWidth = widthSlider.value;
 });
 
 maxSlider.addEventListener('input', function(){
-    MAX_DIST = maxSlider.value;
+    maxDist = maxSlider.value;
 });
 
 (function renderFrame() {
