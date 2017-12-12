@@ -4,7 +4,8 @@ let ctx = canvas.getContext('2d');
 const BUBBLE_COUNT = 50;
 const BUBBLE_MAX_SIZE = 50;
 const BUBBLE_MIN_SIZE = 15;
-const BUBBLE_MAX_SPEED = -1;
+const BUBBLE_MAX_LIFT = 55; // Pixels / Sec
+const BUBBLE_MIN_LIFT = 5; // Pixels / Sec
 
 const BGCOLORS = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
 
@@ -35,15 +36,13 @@ function drawText() {
 function newBubble(x, y) {
     let radius = (Math.random() * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + BUBBLE_MIN_SIZE;
     let xspeed = 0;
-    let yspeed = -Math.random();
-    let lift = 1.25 - radius / BUBBLE_MAX_SIZE;
+    let yspeed = -(BUBBLE_MAX_LIFT - (BUBBLE_MAX_LIFT - BUBBLE_MIN_LIFT) * radius / BUBBLE_MAX_SIZE);
     let bubble = {
         x: x,
         y: y,
         radius: radius,
         xspeed: xspeed,
-        yspeed: yspeed,
-        lift: lift
+        yspeed: yspeed
     };
     return bubble
 }
@@ -80,16 +79,18 @@ function checkBubbleCollision(bubble1, bubble2) {
     return distance < bubble1.radius + bubble2.radius;
 }
 
-function handleCollision(bubble) {
+function handleCollision(bubble, dt) {
     for (let i = 0; i < bubbles.length; i++) {
         if (checkBubbleCollision(bubble, bubbles[i])) {
             //drawCollision(bubble.x, bubble.y, bubble.radius);
             if (bubble.y < bubbles[i].y) {
-                bubble.yspeed -= .01;
+                bubble.yspeed -= (BUBBLE_MAX_LIFT / 1.5) * dt;
+                //bubble.y -= 5;
             } else {
-                bubble.yspeed += .01;
+                bubble.yspeed += (BUBBLE_MAX_LIFT / 1.5) * dt;
+                //bubble.y += 5;
             }
-            let moveAmt = .01;
+            let moveAmt = 5 * dt;
             if (bubble.x < bubbles[i].x) {
                 moveAmt = -moveAmt;
             }
@@ -98,11 +99,12 @@ function handleCollision(bubble) {
     }
 }
 
-function moveBubble(bubble) {
-    bubble.x += bubble.xspeed;
-    bubble.y += bubble.yspeed;
-    bubble.xspeed /= 1.01;
-    bubble.yspeed = Math.min(bubble.yspeed /= 1.01, -bubble.lift);
+function moveBubble(bubble, dt) {
+    bubble.x += bubble.xspeed * dt;
+    bubble.y += bubble.yspeed * dt;
+    //bubble.xspeed *= 5 * dt;
+    //bubble.yspeed = Math.min(bubble.yspeed += 5 * dt, bubble.lift);
+    //bubble.yspeed = -5;
     if (bubble.x > canvas.width + bubble.radius) {
         bubble.x = -bubble.radius;
     }
@@ -117,12 +119,12 @@ function moveBubble(bubble) {
     }
 }
 
-function moveBubbles() {
+function moveBubbles(dt) {
     for (let i = 0; i < bubbles.length; i++) {
-        moveBubble(bubbles[i]);
+        moveBubble(bubbles[i], dt);
     }
     for (let i = 0; i < bubbles.length; i++) {
-        handleCollision(bubbles[i]);
+        handleCollision(bubbles[i], dt);
     }
 }
 
@@ -145,14 +147,14 @@ function newPop(bubble) {
         x: bubble.x,
         y: bubble.y,
         radius: bubble.radius,
-        time: 1
+        time: .5
     }
     return pop;
 }
 
-function handlePops() {
+function handlePops(dt) {
     for (let i = 0; i < pops.length; i++) {
-        pops[i].time -= .1
+        pops[i].time -= dt
         if (pops[i].time <= 0) {
             pops.splice(i, 1);
         }
@@ -200,11 +202,16 @@ window.addEventListener('resize', function() {
 randomizeBgColor();
 generateBubbles();
 
+let lt = Date.now();
+
 (function renderFrame() {
     requestAnimationFrame(renderFrame);
+    let t = Date.now();
+    let dt = (t - lt) * 0.001;
+    lt = t;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    moveBubbles();
-    handlePops();
+    moveBubbles(dt);
+    handlePops(dt);
     drawBubbles();
     drawPops();
     drawText();
