@@ -7,11 +7,13 @@ const BUBBLE_MIN_SIZE = 15;
 const BUBBLE_MAX_LIFT = 55; // Pixels / Sec
 const BUBBLE_MIN_LIFT = 15; // Pixels / Sec
 
+const MAX_DT = 1;
+
 const BGCOLORS = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
 const FGCOLORS = ["#8bdeff", "#E59EFF", "#6AF7D4", "#81FFB1"];
 
-let randColor = Math.floor(Math.random() * BGCOLORS.length);
-document.body.style.backgroundColor = BGCOLORS[randColor];
+let currColor = Math.floor(Math.random() * BGCOLORS.length);
+document.body.style.backgroundColor = BGCOLORS[currColor];
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -56,7 +58,7 @@ function generateBubbles() {
 function drawCollision(x, y, radius, alpha) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = FGCOLORS[randColor];
+    ctx.strokeStyle = FGCOLORS[currColor];
     ctx.globalAlpha = alpha * 10;
     ctx.lineWidth = 20;
     ctx.stroke();
@@ -85,7 +87,7 @@ function handleCollision(bubble, dt) {
     for (let i = 0; i < bubbles.length; i++) {
         let collisionFactor = getBubbleCollisionFactor(bubble, bubbles[i]);
         if (collisionFactor > 0) {
-            drawCollision(bubble.x, bubble.y, bubble.radius, collisionFactor);
+            //drawCollision(bubble.x, bubble.y, bubble.radius, collisionFactor);
             if (bubble.y < bubbles[i].y) {
                 bubble.yspeed -= collisionFactor * BUBBLE_MAX_LIFT * dt;
             } else {
@@ -103,13 +105,11 @@ function handleCollision(bubble, dt) {
 function moveBubble(bubble, dt) {
     bubble.x += bubble.xspeed * dt;
     bubble.y += bubble.yspeed * dt;
-    //bubble.xspeed *= 5 * dt;
     if (bubble.yspeed < bubble.lift) {
         bubble.yspeed += 5 * dt;
     } else {
         bubble.yspeed -= 5 * dt;
     }
-    //bubble.yspeed = -5;
     if (bubble.x > canvas.width + bubble.radius) {
         bubble.x = -bubble.radius;
     }
@@ -141,7 +141,19 @@ function drawBubble(bubble) {
     ctx.closePath();
 }
 
+function drawBubbleOutline(bubble) {
+    ctx.beginPath();
+    ctx.arc(bubble.x, bubble.y, bubble.radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = FGCOLORS[currColor];
+    ctx.lineWidth = 20;
+    ctx.stroke();
+    ctx.closePath();
+}
+
 function drawBubbles() {
+    for (let i = 0; i < bubbles.length; i++) {
+        drawBubbleOutline(bubbles[i]);
+    }
     for (let i = 0; i < bubbles.length; i++) {
         drawBubble(bubbles[i]);
     }
@@ -212,6 +224,7 @@ let lt = Date.now();
     requestAnimationFrame(renderFrame);
     let t = Date.now();
     let dt = (t - lt) * 0.001;
+    dt = Math.min(dt, MAX_DT);
     lt = t;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     moveBubbles(dt);
