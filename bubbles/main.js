@@ -85,11 +85,9 @@ function handleCollision(bubble, dt) {
         if (checkBubbleCollision(bubble, bubbles[i])) {
             //drawCollision(bubble.x, bubble.y, bubble.radius);
             if (bubble.y < bubbles[i].y) {
-                bubble.yspeed -= (BUBBLE_MAX_LIFT / 1.5) * dt;
-                //bubble.y -= 5;
+                bubble.yspeed -= (BUBBLE_MAX_LIFT / 4) * dt;
             } else {
-                bubble.yspeed += (BUBBLE_MAX_LIFT / 1.5) * dt;
-                //bubble.y += 5;
+                bubble.yspeed += (BUBBLE_MAX_LIFT / 4) * dt;
             }
             let moveAmt = 5 * dt;
             if (bubble.x < bubbles[i].x) {
@@ -104,7 +102,11 @@ function moveBubble(bubble, dt) {
     bubble.x += bubble.xspeed * dt;
     bubble.y += bubble.yspeed * dt;
     //bubble.xspeed *= 5 * dt;
-    bubble.yspeed = Math.max(bubble.yspeed - (-bubble.lift) * dt, bubble.lift);
+    if (bubble.yspeed < bubble.lift) {
+        bubble.yspeed += 5 * dt;
+    } else {
+        bubble.yspeed -= 5 * dt;
+    }
     //bubble.yspeed = -5;
     if (bubble.x > canvas.width + bubble.radius) {
         bubble.x = -bubble.radius;
