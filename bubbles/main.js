@@ -15,8 +15,13 @@ const FGCOLORS = ["#8bdeff", "#E59EFF", "#6AF7D4", "#81FFB1"];
 let currColor = Math.floor(Math.random() * BGCOLORS.length);
 document.body.style.backgroundColor = BGCOLORS[currColor];
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resizeCanvas() {
+    let width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+    let height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+
+    canvas.width = width;
+    canvas.height = height;
+}
 
 let mouse = {x: 0, y: 0};
 
@@ -211,11 +216,9 @@ document.body.addEventListener('click', function() {
     bubbles.push(newBubble(mouse.x, mouse.y));
 }, false);
 
-window.addEventListener('resize', function() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
+window.addEventListener('resize', resizeCanvas);
 
+resizeCanvas();
 generateBubbles();
 
 let lt = Date.now();
