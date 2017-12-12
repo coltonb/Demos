@@ -180,9 +180,9 @@ function handlePops(dt) {
 
 function drawPop(pop) {
     ctx.beginPath();
-    ctx.arc(pop.x, pop.y, pop.radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 5;
+    ctx.arc(pop.x, pop.y, pop.radius + 5, 0, 2 * Math.PI);
+    ctx.strokeStyle = FGCOLORS[currColor];
+    ctx.lineWidth = 10;
     ctx.stroke();
     ctx.closePath();
 }
@@ -229,7 +229,7 @@ let lt = Date.now();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     moveBubbles(dt);
     handlePops(dt);
-    drawBubbles();
     drawPops();
+    drawBubbles();
     drawText();
 }());
