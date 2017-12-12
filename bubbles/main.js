@@ -8,6 +8,10 @@ const BUBBLE_MAX_LIFT = 55; // Pixels / Sec
 const BUBBLE_MIN_LIFT = 15; // Pixels / Sec
 
 const BGCOLORS = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
+const FGCOLORS = ["#8bdeff", "#E59EFF", "#6AF7D4", "#81FFB1"];
+
+let randColor = Math.floor(Math.random() * BGCOLORS.length);
+document.body.style.backgroundColor = BGCOLORS[randColor];
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -16,11 +20,6 @@ let mouse = {x: 0, y: 0};
 
 let bubbles = [];
 let pops = [];
-
-function randomizeBgColor() {
-    let randIndex = Math.floor(Math.random() * BGCOLORS.length);
-    document.body.style.backgroundColor = BGCOLORS[randIndex];
-}
 
 function drawText() {
     ctx.globalCompositeOperation = 'xor';
@@ -54,12 +53,14 @@ function generateBubbles() {
     }
 }
 
-function drawCollision(x, y, radius) {
+function drawCollision(x, y, radius, alpha) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'red';
+    ctx.strokeStyle = FGCOLORS[randColor];
+    ctx.globalAlpha = alpha * 10;
     ctx.lineWidth = 20;
     ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.closePath();
 }
 
@@ -70,30 +71,31 @@ function checkMouseCollision(bubble, mouse) {
     return distance < bubble.radius;
 }
 
-function checkBubbleCollision(bubble1, bubble2) {
+function getBubbleCollisionFactor(bubble1, bubble2) {
     if (bubble1 === bubble2) {
-        return false;
+        return 0;
     }
     let dx = bubble2.x - bubble1.x;
     let dy = bubble2.y - bubble1.y;
     let distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < bubble1.radius + bubble2.radius;
+    return (bubble1.radius + bubble2.radius - distance) / (bubble1.radius + bubble2.radius);
 }
 
 function handleCollision(bubble, dt) {
     for (let i = 0; i < bubbles.length; i++) {
-        if (checkBubbleCollision(bubble, bubbles[i])) {
-            //drawCollision(bubble.x, bubble.y, bubble.radius);
+        let collisionFactor = getBubbleCollisionFactor(bubble, bubbles[i]);
+        if (collisionFactor > 0) {
+            drawCollision(bubble.x, bubble.y, bubble.radius, collisionFactor);
             if (bubble.y < bubbles[i].y) {
-                bubble.yspeed -= (BUBBLE_MAX_LIFT / 4) * dt;
+                bubble.yspeed -= collisionFactor * BUBBLE_MAX_LIFT * dt;
             } else {
-                bubble.yspeed += (BUBBLE_MAX_LIFT / 4) * dt;
+                bubble.yspeed += collisionFactor * BUBBLE_MAX_LIFT * dt;
             }
-            let moveAmt = 5 * dt;
             if (bubble.x < bubbles[i].x) {
-                moveAmt = -moveAmt;
+                bubble.xspeed -= collisionFactor * BUBBLE_MAX_LIFT * dt;;
+            } else {
+                bubble.xspeed += collisionFactor * BUBBLE_MAX_LIFT * dt;;
             }
-            bubble.xspeed += moveAmt;
         }
     }
 }
@@ -202,7 +204,6 @@ window.addEventListener('resize', function() {
     canvas.height = window.innerHeight;
 });
 
-randomizeBgColor();
 generateBubbles();
 
 let lt = Date.now();
