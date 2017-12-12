@@ -6,6 +6,8 @@ const BUBBLE_MAX_SIZE = 50;
 const BUBBLE_MIN_SIZE = 15;
 const BUBBLE_MAX_SPEED = -1;
 
+const BGCOLORS = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -15,20 +17,19 @@ let bubbles = [];
 let pops = [];
 
 function randomizeBgColor() {
-	let colors = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
-	let randIndex = Math.floor(Math.random() * colors.length);
-	document.body.style.backgroundColor = colors[randIndex];
+    let randIndex = Math.floor(Math.random() * BGCOLORS.length);
+    document.body.style.backgroundColor = BGCOLORS[randIndex];
 }
 
 function drawText() {
-	ctx.globalCompositeOperation = 'xor';
-	ctx.font = "bold 20pt sans-serif";
-	ctx.textAlign = "center";
-	ctx.fillStyle = 'white';
-	ctx.fillText("Bubbles", canvas.width / 2, canvas.height / 2);
-	ctx.font = "12pt sans-serif";
-	ctx.fillText("Try clicking!", canvas.width / 2, canvas.height / 2 + 30);
-	ctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'xor';
+    ctx.font = "bold 20pt sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = 'white';
+    ctx.fillText("Bubbles", canvas.width / 2, canvas.height / 2);
+    ctx.font = "12pt sans-serif";
+    ctx.fillText("Try clicking!", canvas.width / 2, canvas.height / 2 + 30);
+    ctx.globalCompositeOperation = 'source-over';
 }
 
 function newBubble(x, y) {
@@ -204,7 +205,7 @@ generateBubbles();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     moveBubbles();
     handlePops();
-	drawBubbles();
+    drawBubbles();
     drawPops();
-	drawText();
+    drawText();
 }());
