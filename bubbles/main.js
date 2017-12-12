@@ -5,7 +5,7 @@ const BUBBLE_COUNT = 50;
 const BUBBLE_MAX_SIZE = 50;
 const BUBBLE_MIN_SIZE = 15;
 const BUBBLE_MAX_LIFT = 55; // Pixels / Sec
-const BUBBLE_MIN_LIFT = 5; // Pixels / Sec
+const BUBBLE_MIN_LIFT = 15; // Pixels / Sec
 
 const BGCOLORS = ["#3498db", "#9b59b6", "#1abc9c", "#2ecc71"];
 
@@ -42,7 +42,8 @@ function newBubble(x, y) {
         y: y,
         radius: radius,
         xspeed: xspeed,
-        yspeed: yspeed
+        yspeed: yspeed,
+        lift: yspeed
     };
     return bubble
 }
@@ -103,7 +104,7 @@ function moveBubble(bubble, dt) {
     bubble.x += bubble.xspeed * dt;
     bubble.y += bubble.yspeed * dt;
     //bubble.xspeed *= 5 * dt;
-    //bubble.yspeed = Math.min(bubble.yspeed += 5 * dt, bubble.lift);
+    bubble.yspeed = Math.max(bubble.yspeed - (-bubble.lift) * dt, bubble.lift);
     //bubble.yspeed = -5;
     if (bubble.x > canvas.width + bubble.radius) {
         bubble.x = -bubble.radius;
@@ -147,7 +148,7 @@ function newPop(bubble) {
         x: bubble.x,
         y: bubble.y,
         radius: bubble.radius,
-        time: .5
+        time: .15
     }
     return pop;
 }
