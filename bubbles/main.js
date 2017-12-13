@@ -204,7 +204,7 @@ document.body.addEventListener('mousemove', function(e) {
     mouse.y = e.pageY;
 });
 
-document.body.addEventListener('click', function() {
+document.body.addEventListener('mousedown', function() {
     let bubbleClicked = false;
     for (let i = 0; i < bubbles.length && !bubbleClicked; i++) {
         if (checkMouseCollision(bubbles[i], mouse)) {
