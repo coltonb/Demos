@@ -219,7 +219,6 @@ function drawPops() {
 }
 
 function handlePseudoBubble(dt) {
-    console.log(pseudoBubble);
     if (pseudoBubble !== null) {
         if (pseudoBubble.radius < BUBBLE_MAX_SIZE) {
             pseudoBubble.timeAlive += dt;
@@ -234,16 +233,16 @@ function handlePseudoBubble(dt) {
 }
 
 // Event listeners
-document.body.addEventListener('mousemove', function(e) {
+function updateMousePos(e) {
     mouse.x = e.pageX;
     mouse.y = e.pageY;
     if (pseudoBubble !== null) {
         pseudoBubble.x = mouse.x;
         pseudoBubble.y = mouse.y;
     }
-});
+}
 
-document.body.addEventListener('mousedown', function() {
+function mouseDown() {
     let bubbleClicked = false;
     for (let i = 0; i < bubbles.length && !bubbleClicked; i++) {
         if (checkMouseCollision(bubbles[i], mouse)) {
@@ -255,16 +254,45 @@ document.body.addEventListener('mousedown', function() {
     if (pseudoBubble === null) {
         pseudoBubble = newBubble(mouse.x, mouse.y, BUBBLE_MIN_SIZE);
         pseudoBubble.timeAlive = 0;
-        console.log(pseudoBubble);
     }
-}, false);
+}
 
-document.body.addEventListener('mouseup', function() {
+function mouseUp() {
     if (pseudoBubble != null) {
         bubbles.push(newBubble(pseudoBubble.x, pseudoBubble.y, pseudoBubble.radius));
         pseudoBubble = null;
     }
-}, false);
+}
+
+function touchStart(e) {
+    let touch = e.targetTouches[0];
+    let info = {pageX: touch.pageX, pageY: touch.pageY};
+    updateMousePos(info);
+    mouseDown();
+    console.log("yes");
+}
+
+function touchMove(e) {
+    let touch = e.targetTouches[0];
+    let info = {pageX: touch.pageX, pageY: touch.pageY};
+    updateMousePos(info);
+}
+
+function touchEnd(e) {
+    mouseUp();
+}
+
+document.body.addEventListener('touchstart', updateMousePos, false);
+
+if (!/Mobi/.test(navigator.userAgent)) {
+    document.body.addEventListener('mousedown', mouseDown, false);
+    document.body.addEventListener('mouseup', mouseUp, false);
+    document.body.addEventListener('mousemove', updateMousePos, false);
+} else {
+    document.body.addEventListener('touchstart', touchStart, false);
+    document.body.addEventListener('touchend', touchEnd, false);
+    document.body.addEventListener('touchmove', touchMove, false);
+}
 
 window.addEventListener('resize', resizeCanvas);
 
