@@ -28,6 +28,8 @@ let mouse = {x: 0, y: 0};
 let bubbles = [];
 let pops = [];
 
+let pseudoBubble = null;
+
 function drawText() {
     ctx.globalCompositeOperation = 'xor';
     ctx.font = "bold 20pt sans-serif";
@@ -39,8 +41,16 @@ function drawText() {
     ctx.globalCompositeOperation = 'source-over';
 }
 
-function newBubble(x, y) {
-    let radius = (Math.random() * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + BUBBLE_MIN_SIZE;
+function newBubble(x, y, radius) {
+    if (x === undefined) {
+        x = Math.random() * canvas.width;
+    }
+    if (y === undefined) {
+        y = Math.random() * canvas.height;
+    }
+    if (radius === undefined) {
+        radius = (Math.random() * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + BUBBLE_MIN_SIZE;
+    }
     let xspeed = 0;
     let yspeed = -(BUBBLE_MAX_LIFT - (BUBBLE_MAX_LIFT - BUBBLE_MIN_LIFT) * radius / BUBBLE_MAX_SIZE);
     let bubble = {
@@ -56,7 +66,7 @@ function newBubble(x, y) {
 
 function generateBubbles() {
     for (let i = 0; i < BUBBLE_COUNT; i++) {
-        bubbles.push(newBubble(Math.random() * canvas.width, Math.random() * canvas.height));
+        bubbles.push(newBubble());
     }
 }
 
@@ -159,8 +169,14 @@ function drawBubbles() {
     for (let i = 0; i < bubbles.length; i++) {
         drawBubbleOutline(bubbles[i]);
     }
+    if (pseudoBubble !== null) {
+        drawBubbleOutline(pseudoBubble);
+    }
     for (let i = 0; i < bubbles.length; i++) {
         drawBubble(bubbles[i]);
+    }
+    if (pseudoBubble !== null) {
+        drawBubble(pseudoBubble);
     }
 }
 
@@ -168,7 +184,9 @@ function newPop(bubble) {
     let pop = {
         x: bubble.x,
         y: bubble.y,
-        radius: bubble.radius,
+        radius: bubble.radius + 5,
+        startRadius: bubble.radius + 5,
+        width: 10,
         time: .15
     }
     return pop;
@@ -176,7 +194,9 @@ function newPop(bubble) {
 
 function handlePops(dt) {
     for (let i = 0; i < pops.length; i++) {
-        pops[i].time -= dt
+        pops[i].time -= dt;
+        pops[i].width = (pops[i].time / .15) * 10;
+        pops[i].radius = (1 - pops[i].time / .15) * pops[i].startRadius;
         if (pops[i].time <= 0) {
             pops.splice(i, 1);
         }
@@ -185,9 +205,9 @@ function handlePops(dt) {
 
 function drawPop(pop) {
     ctx.beginPath();
-    ctx.arc(pop.x, pop.y, pop.radius + 5, 0, 2 * Math.PI);
+    ctx.arc(pop.x, pop.y, pop.radius, 0, 2 * Math.PI);
     ctx.strokeStyle = FGCOLORS[currColor];
-    ctx.lineWidth = 10;
+    ctx.lineWidth = pop.width;
     ctx.stroke();
     ctx.closePath();
 }
@@ -198,10 +218,29 @@ function drawPops() {
     }
 }
 
+function handlePseudoBubble(dt) {
+    console.log(pseudoBubble);
+    if (pseudoBubble !== null) {
+        if (pseudoBubble.radius < BUBBLE_MAX_SIZE) {
+            pseudoBubble.timeAlive += dt;
+            pseudoBubble.radius = (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE) *
+                                  pseudoBubble.timeAlive *
+                                  pseudoBubble.timeAlive + BUBBLE_MIN_SIZE;
+        } else {
+            bubbles.push(newBubble(pseudoBubble.x, pseudoBubble.y, pseudoBubble.radius));
+            pseudoBubble = null;
+        }
+    }
+}
+
 // Event listeners
 document.body.addEventListener('mousemove', function(e) {
     mouse.x = e.pageX;
     mouse.y = e.pageY;
+    if (pseudoBubble !== null) {
+        pseudoBubble.x = mouse.x;
+        pseudoBubble.y = mouse.y;
+    }
 });
 
 document.body.addEventListener('mousedown', function() {
@@ -213,7 +252,18 @@ document.body.addEventListener('mousedown', function() {
             return;
         }
     }
-    bubbles.push(newBubble(mouse.x, mouse.y));
+    if (pseudoBubble === null) {
+        pseudoBubble = newBubble(mouse.x, mouse.y, BUBBLE_MIN_SIZE);
+        pseudoBubble.timeAlive = 0;
+        console.log(pseudoBubble);
+    }
+}, false);
+
+document.body.addEventListener('mouseup', function() {
+    if (pseudoBubble != null) {
+        bubbles.push(newBubble(pseudoBubble.x, pseudoBubble.y, pseudoBubble.radius));
+        pseudoBubble = null;
+    }
 }, false);
 
 window.addEventListener('resize', resizeCanvas);
@@ -232,6 +282,7 @@ let lt = Date.now();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     moveBubbles(dt);
     handlePops(dt);
+    handlePseudoBubble(dt);
     drawPops();
     drawBubbles();
     drawText();
