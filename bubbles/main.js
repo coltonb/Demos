@@ -269,7 +269,6 @@ function touchStart(e) {
     let info = {pageX: touch.pageX, pageY: touch.pageY};
     updateMousePos(info);
     mouseDown();
-    console.log("yes");
 }
 
 function touchMove(e) {
