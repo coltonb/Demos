@@ -281,8 +281,6 @@ function touchEnd(e) {
     mouseUp();
 }
 
-document.body.addEventListener('touchstart', updateMousePos, false);
-
 if (!/Mobi/.test(navigator.userAgent)) {
     document.body.addEventListener('mousedown', mouseDown, false);
     document.body.addEventListener('mouseup', mouseUp, false);
