@@ -142,23 +142,25 @@ window.addEventListener("keypress", function(e) {
 window.addEventListener("touchstart", function(e) {
     let touches = e.changedTouches;
     if (touches[0].pageX > canvas.width / 2) {
-        if (xMod == 10) {
+        if (xMod != 0) {
             xMod = 0;
-            yMod = 10;
-        } else if (xMod == -10) {
-            xMod = 0;
-            yMod = -10;
+            if (touches[0].pageY > canvas.height / 2) {
+                yMod = 10;
+            } else {
+                yMod = -10;
+            }
         } else {
             xMod = 10;
             yMod = 0;
         }
     } else {
-        if (xMod == 10) {
+        if (xMod != 0) {
             xMod = 0;
-            yMod = -10;
-        } else if (xMod == -10) {
-            xMod = 0;
-            yMod = 10;
+            if (touches[0].pageY > canvas.height / 2) {
+                yMod = 10;
+            } else {
+                yMod = -10;
+            }
         } else {
             xMod = -10;
             yMod = 0;
