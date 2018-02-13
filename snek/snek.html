@@ -79,7 +79,7 @@ function newFood() {
 let food = newFood();
 
 function reset() {
-    lengthMod = 200;
+    lengthMod = 1;
     head = newPart(0, 0);
     parts = [head];
     tickDuration = baseTickDuration / (1 + lengthMod / 10000);
@@ -148,10 +148,7 @@ window.addEventListener("touchstart", function(e) {
         } else if (xMod == -10) {
             xMod = 0;
             yMod = -10;
-        } else if (yMod == 10) {
-            xMod = -10;
-            yMod = 0;
-        } else if (yMod == -10) {
+        } else {
             xMod = 10;
             yMod = 0;
         }
@@ -162,10 +159,7 @@ window.addEventListener("touchstart", function(e) {
         } else if (xMod == -10) {
             xMod = 0;
             yMod = 10;
-        } else if (yMod == 10) {
-            xMod = 10;
-            yMod = 0;
-        } else if (yMod == -10) {
+        } else {
             xMod = -10;
             yMod = 0;
         }
