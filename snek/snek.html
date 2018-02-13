@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<style>
+html, body {
+    overflow: hidden;
+}
+body {
+    margin:0;
+}
+canvas {
+    background: black;
+}
+</style>
+<body>
+<canvas width=800 height=800 id="canvas"></canvas>
+<script type="text/javascript">
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const minDim = 8;
+const maxDim = Math.min(window.innerWidth, window.innerHeight) / 10;
+
+let width = 300;
+let height = 300;
+
+let t = 0;
+let lastUpdate = Date.now();
+
+let moveTime = 0;
+
+let lengthMod = 0;
+
+let screenshake = 0;
+
+let pause = true;
+
+const baseTickDuration = 0.075;
+let tickDuration = baseTickDuration;
+let tickMod = 1;
+
+parts = [];
+
+function newPart(x, y) {
+    return {x: x, y: y, t: lengthMod}
+}
+
+let head = newPart(0, 0);
+
+let xMod = 10;
+let yMod = 0;
+
+let moved = false;
+
+parts.push(head);
+
+function newFood() {
+    let foodx = 0;
+    let foody = 0;
+    let invalid = false;
+    do {
+        invalid = false;
+        foodx = Math.floor(Math.random() * width / 10) * 10;
+        foody = Math.floor(Math.random() * height / 10) * 10;
+        for (let i = 0; i < parts.length; i++) {
+            if (foodx == parts[i].x && foody == parts[i].y) {
+                invalid = true
+            } 
+        }
+    } while (invalid);
+    
+    return {x: foodx, y: foody, animTime: 1};
+}
+
+let food = newFood();
+
+function reset() {
+    lengthMod = 200;
+    head = newPart(0, 0);
+    parts = [head];
+    tickDuration = baseTickDuration / (1 + lengthMod / 10000);
+    
+    width = (Math.floor(Math.random() * (maxDim - minDim)) + minDim) * 10;
+    height = (Math.floor(Math.random() * (maxDim - minDim)) + minDim) * 10;
+
+    console.log(`${width*height} needed to win`);
+
+    head.x = Math.floor(Math.random()* width / 10)*10;
+    head.y = Math.floor(Math.random()* height / 10)*10;
+
+    food = newFood();
+
+    if (head.x > (width / 2)) {
+        xMod = -10;
+    } else {
+        xMod = 10;
+    }
+
+    yMod = 0;
+}
+
+window.addEventListener("keypress", function(e) {
+    switch(e.key) {
+        case 'w':
+            if (yMod != 0 || moved) break;
+            xMod = 0;
+            yMod = -10;
+            moved = true;
+            break;
+        case 'd':
+            if (xMod != 0 || moved) break;
+            xMod = 10;
+            yMod = 0;
+            moved = true;
+            break;
+        case 's':
+            if (yMod != 0 || moved) break;
+            xMod = 0;
+            yMod = 10;
+            moved = true;
+            break;
+        case 'a':
+            if (xMod != 0 || moved) break;
+            xMod = -10;
+            yMod = 0;
+            moved = true;
+            break;
+        case ' ':
+            tickDuration = baseTickDuration / (2 + lengthMod / 10000);
+            break;
+    }
+    if (pause) {
+        pause = false;
+        reset();
+    }
+});
+
+window.addEventListener("touchstart", function(e) {
+    let touches = e.changedTouches;
+    if (touches[0].pageX > canvas.width / 2) {
+        if (xMod == 10) {
+            xMod = 0;
+            yMod = 10;
+        } else if (xMod == -10) {
+            xMod = 0;
+            yMod = -10;
+        } else if (yMod == 10) {
+            xMod = -10;
+            yMod = 0;
+        } else if (yMod == -10) {
+            xMod = 10;
+            yMod = 0;
+        }
+    } else {
+        if (xMod == 10) {
+            xMod = 0;
+            yMod = -10;
+        } else if (xMod == -10) {
+            xMod = 0;
+            yMod = 10;
+        } else if (yMod == 10) {
+            xMod = 10;
+            yMod = 0;
+        } else if (yMod == -10) {
+            xMod = -10;
+            yMod = 0;
+        }
+    }
+    if (pause) {
+        pause = false;
+        reset();
+    }
+})
+
+window.addEventListener("keyup", function(e) {
+    switch(e.key) {
+        case ' ':
+            tickDuration = baseTickDuration / (1 + lengthMod / 10000);
+            break;
+    }
+})
+
+function update() {
+    for (let i = 0; i < parts.length; i++) {
+        parts[i].t -= 1;
+        if (parts[i].t <= 0) {
+            parts.splice(i--, 1);
+        }
+    }
+
+    let newX = head.x + xMod;
+    let newY = head.y + yMod;
+    
+    if (newX >= width) {
+        newX = 0;
+    }
+
+    if (newX < 0) {
+        newX = width - 10;
+    }
+
+    if (newY >= height) {
+        newY = 0;
+    }
+
+    if (newY < 0) {
+        newY = height - 10;
+    }
+    
+    head = newPart(newX, newY);
+    parts.push(head);
+
+    moved = false;
+
+    if (head.x >= width || head.x < 0 || head.y >= height || head.y < 0) {
+        pause = true;
+        return;
+    }
+
+    let foodGet = false;
+
+    if (head.x == food.x && head.y == food.y) {
+        lengthMod += 1;
+        screenshake += .25;
+        tickDuration = baseTickDuration / (1 + lengthMod / 10000);
+
+        foodGet = true;
+        food = newFood();
+    }
+
+    for (let i = 0; i < parts.length; i++) {
+        if (foodGet) {
+            parts[i].t+=1;
+        }
+        if (parts[i] !== head) {
+            if (parts[i].x == head.x && parts[i].y == head.y) {
+                pause = true;
+            }
+        }
+        
+    }
+
+}
+
+function draw(dt) {
+    canvas.width|=0;
+
+    ctx.fillStyle='white';
+    ctx.font = "32px sans-serif";
+
+    if (lengthMod == 0) {
+        ctx.fillText("Press any key to play!", 100, 100);
+    } else {
+        ctx.fillText(`Score: ${lengthMod - 1}`, 100, 100);
+    }
+
+    ctx.save();
+
+    ctx.translate(canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
+    
+    if (lengthMod > 10 && lengthMod <= 20) {
+        ctx.translate(Math.sin(t)*10, 0);
+    }
+
+    if (lengthMod > 20) {
+        ctx.translate(Math.sin(t)*40, Math.cos(t)*40);
+    }
+
+    if (lengthMod > 40) {
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(Math.cos(t) / 3.14);
+        ctx.translate(-width / 2, -height / 2);
+    }
+
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(0, 0, width, height);
+
+
+    if (screenshake > 0) {
+        screenshake -= dt;
+        ctx.save();
+
+        let shakeamt = Math.min(100, lengthMod);
+        ctx.translate(Math.random() * shakeamt - shakeamt / 2,
+                      Math.random() * shakeamt - shakeamt / 2);
+    }
+
+    if (food.animTime > 0) {
+        ctx.fillStyle = `hsl(${food.animTime*1000},100%,${100-food.animTime*50}%`;
+        food.animTime -= dt;
+    } else {
+        ctx.fillStyle = 'white';
+    }
+
+    ctx.fillRect(food.x, food.y, 10, 10);
+
+    for (let i = 0; i < parts.length; i++) {
+        if (lengthMod > 30 && i % 2 == 0) {
+            ctx.fillStyle = `hsl(${i*51},100%,${37.5 + Math.sin(t*3) * 37.5}%)`;
+        } else {
+            ctx.fillStyle = `hsl(${i*51},100%,75%`;
+        }
+        ctx.fillRect(parts[i].x+1, parts[i].y+1, 8, 8);
+        if (lengthMod > 50) {
+            ctx.globalAlpha = 0.35 + Math.sin(t*(lengthMod / 10))*0.15;
+            ctx.fillRect(parts[i].x+1+Math.cos(t*(lengthMod / 10))*15, parts[i].y+1+Math.cos(t*3)*15, 8, 8);
+            ctx.fillRect(parts[i].x+1+Math.sin(t*(lengthMod / 10))*15, parts[i].y+1+Math.sin(t*3)*15, 8, 8);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    ctx.restore();
+    ctx.restore();
+}
+
+function step() {
+
+    requestAnimationFrame(step);
+
+    let now = Date.now();
+
+    let dt = (now - lastUpdate) / 1000;
+    t += dt;
+    moveTime += dt;
+
+    if (moveTime >= tickDuration && !pause) {
+        update();
+        moveTime -= tickDuration;
+    } else if (pause) {
+        moveTime = 0;
+    }
+
+    draw(dt);
+
+    lastUpdate = Date.now();
+}
+
+step();
+</script>
+</body>
+</html>

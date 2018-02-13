@@ -23,7 +23,15 @@ function resizeCanvas() {
     canvas.height = height;
 }
 
-let mouse = {x: 0, y: 0};
+let mouse = {
+    x: 0,
+    y: 0,
+    lx: 0,
+    ly: 0,
+    lt: Date.now(),
+    xspeed: 0,
+    yspeed: 0
+};
 
 let bubbles = [];
 let pops = [];
@@ -41,25 +49,33 @@ function drawText() {
     ctx.globalCompositeOperation = 'source-over';
 }
 
-function newBubble(x, y, radius) {
-    if (x === undefined) {
-        x = Math.random() * canvas.width;
+function newBubble(args) {
+    if (args === undefined) {
+        args = {};
     }
-    if (y === undefined) {
-        y = Math.random() * canvas.height;
+    if (args.x === undefined) {
+        args.x = Math.random() * canvas.width;
     }
-    if (radius === undefined) {
-        radius = (Math.random() * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + BUBBLE_MIN_SIZE;
+    if (args.y === undefined) {
+        args.y = Math.random() * canvas.height;
     }
-    let xspeed = 0;
-    let yspeed = -(BUBBLE_MAX_LIFT - (BUBBLE_MAX_LIFT - BUBBLE_MIN_LIFT) * radius / BUBBLE_MAX_SIZE);
+    if (args.radius === undefined) {
+        args.radius = (Math.random() * (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE)) + BUBBLE_MIN_SIZE;
+    }
+    if (args.xspeed === undefined) {
+        args.xspeed = 0;
+    }
+    let lift = -(BUBBLE_MAX_LIFT - (BUBBLE_MAX_LIFT - BUBBLE_MIN_LIFT) * args.radius / BUBBLE_MAX_SIZE);
+    if (args.yspeed === undefined) {
+        args.yspeed = lift;
+    }
     let bubble = {
-        x: x,
-        y: y,
-        radius: radius,
-        xspeed: xspeed,
-        yspeed: yspeed,
-        lift: yspeed
+        x: args.x,
+        y: args.y,
+        radius: args.radius,
+        xspeed: args.xspeed,
+        yspeed: args.yspeed,
+        lift: lift
     };
     return bubble
 }
@@ -124,6 +140,12 @@ function moveBubble(bubble, dt) {
         bubble.yspeed += 5 * dt;
     } else {
         bubble.yspeed -= 5 * dt;
+    }
+    if (bubble.xspeed < 0) {
+        bubble.xspeed += 5 * dt;
+    }
+    if (bubble.xspeed > 0) {
+        bubble.xspeed -= 5 * dt;
     }
     if (bubble.x > canvas.width + bubble.radius) {
         bubble.x = -bubble.radius;
@@ -225,8 +247,12 @@ function handlePseudoBubble(dt) {
             pseudoBubble.radius = (BUBBLE_MAX_SIZE - BUBBLE_MIN_SIZE) *
                                   pseudoBubble.timeAlive *
                                   pseudoBubble.timeAlive + BUBBLE_MIN_SIZE;
+            pseudoBubble.x = mouse.x;
+            pseudoBubble.y = mouse.y;
+            pseudoBubble.xspeed = mouse.xspeed;
+            pseudoBubble.yspeed = mouse.yspeed;
         } else {
-            bubbles.push(newBubble(pseudoBubble.x, pseudoBubble.y, pseudoBubble.radius));
+            bubbles.push(newBubble(pseudoBubble));
             pseudoBubble = null;
         }
     }
@@ -236,9 +262,17 @@ function handlePseudoBubble(dt) {
 function updateMousePos(e) {
     mouse.x = e.pageX;
     mouse.y = e.pageY;
-    if (pseudoBubble !== null) {
-        pseudoBubble.x = mouse.x;
-        pseudoBubble.y = mouse.y;
+}
+
+function updateMouseVel(dt) {
+    let t = Date.now();
+    if (t - mouse.lt > 25) {
+        console.log(t - mouse.lt);
+        mouse.xspeed =  mouse.x - mouse.lx;
+        mouse.yspeed = mouse.y - mouse.ly;
+        mouse.lx = mouse.x;
+        mouse.ly = mouse.y;
+        mouse.lt = Date.now();
     }
 }
 
@@ -252,14 +286,14 @@ function mouseDown() {
         }
     }
     if (pseudoBubble === null) {
-        pseudoBubble = newBubble(mouse.x, mouse.y, BUBBLE_MIN_SIZE);
+        pseudoBubble = newBubble({x: mouse.x, y: mouse.y, radius: BUBBLE_MIN_SIZE});
         pseudoBubble.timeAlive = 0;
     }
 }
 
 function mouseUp() {
     if (pseudoBubble != null) {
-        bubbles.push(newBubble(pseudoBubble.x, pseudoBubble.y, pseudoBubble.radius));
+        bubbles.push(newBubble(pseudoBubble));
         pseudoBubble = null;
     }
 }
@@ -308,6 +342,7 @@ let lt = Date.now();
     moveBubbles(dt);
     handlePops(dt);
     handlePseudoBubble(dt);
+    updateMouseVel(dt);
     drawPops();
     drawBubbles();
     drawText();
