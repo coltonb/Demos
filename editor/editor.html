@@ -1,0 +1,158 @@
+<html>
+<body>
+    <canvas id="canvas" width="900" height="595" />
+    <script type="text/javascript">
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+
+        let areax = 84;
+        let areay = 59;
+
+        let selection = {x:0, y:0, px:0, py:0, down:false, color:"#000"};
+
+        ctx.strokeRect(areax*10 + 10, 10, 10, 10);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(areax*10 + 10, 20, 10, 10);
+        ctx.strokeStyle = "#777";
+        ctx.strokeRect(areax*10 + 10, 20, 10, 10);
+
+        function constructGrid() {
+            let newGrid = [];
+            for (let y = 0; y < areay; y++) {
+                newGrid.push([]);
+                for (let x = 0; x < areax; x++) {
+                    newGrid[y][x] = "#fff";
+                }
+            }
+            return newGrid;
+        }
+
+        let grid = constructGrid();
+
+
+        console.log(grid);
+
+        function drawRect(x, y, color) {
+            if (color !== undefined) {
+                ctx.fillStyle = color;
+            } else {
+                ctx.fillStyle = grid[y][x];
+            }
+            ctx.fillRect(x*10, y*10, 10, 10);
+            ctx.strokeRect(x*10, y*10, 10, 10);
+        }
+
+        function clear() {
+            for (y = 0; y < areay; y++) {
+                for (x = 0; x < areax; x++) {
+                    ctx.fillStyle = "#fff";
+                }
+            }
+        }
+
+        function draw() {
+            for (y = 0; y < areay; y++) {
+                for (x = 0; x < areax; x++) {
+                    ctx.fillStyle = grid[y][x];
+                    ctx.fillRect(x*10, y*10, 10, 10);
+                    ctx.strokeRect(x*10, y*10, 10, 10);
+                }
+            }
+        }
+
+        canvas.addEventListener("mousemove", function(e) {
+            let rect = canvas.getBoundingClientRect();
+            let cx = e.clientX - rect.left;
+            let cy = e.clientY - rect.top;
+            let x = Math.floor((e.clientX - rect.left)/10);
+            let y = Math.floor((e.clientY - rect.top)/10);
+
+            selection.cx = cx;
+            selection.cy = cy;
+
+            selection.x = x;
+            selection.y = y;
+
+            if (!selection.down) {
+                if (grid[selection.py][selection.px] === "#aaa"
+                    && selection.px < areax && selection.py < areay) {
+                    grid[selection.py][selection.px] = "#fff";
+                    drawRect(selection.px, selection.py);
+                }
+
+                selection.px = x;
+                selection.py = y;
+
+                if (grid[y][x] === "#fff" && x < areax && y < areay) {
+                    grid[y][x] = "#aaa";
+                    drawRect(x, y);
+                }
+            } else {
+                let startx = Math.min(selection.px, selection.x);
+                let starty = Math.min(selection.py, selection.y);
+                let endx = Math.max(selection.px, selection.x);
+                let endy = Math.max(selection.py, selection.y);
+                startx = Math.min(startx, areax - 1);
+                starty = Math.min(starty, areay - 1);
+                endx = Math.min(endx, areax - 1);
+                endy = Math.min(endy, areay - 1);
+
+                endx++;
+                endy++;
+
+                for (y = starty; y < endy; y++) {
+                    for (x = startx; x < endx; x++) {
+                        drawRect(x, y, "#aaa")
+                    }
+                }
+            }
+            
+        });
+
+        canvas.addEventListener("mousedown", function(e) {
+            if (selection.x < areax && selection.y < areay) {
+                selection.down = true;
+            }
+            if ((selection.cx >= areax*10 + 10 && selection.cx < areax*10 + 20)
+                && (selection.cy >= 10 && selection.cy < 20)) {
+                    selection.color = "#fff";
+            }
+            if ((selection.cx >= areax*10 + 10 && selection.cx < areax*10 + 20)
+                && (selection.cy >= 20 && selection.cy < 30)) {
+                    selection.color = "#000";
+            }
+        });
+
+        canvas.addEventListener("mouseup", function(e) {
+            if (selection.down) {
+
+                let startx = Math.min(selection.px, selection.x);
+                let starty = Math.min(selection.py, selection.y);
+                let endx = Math.max(selection.px, selection.x)
+                let endy = Math.max(selection.py, selection.y);
+                startx = Math.min(startx, areax - 1);
+                starty = Math.min(starty, areay - 1);
+                endx = Math.min(endx, areax - 1);
+                endy = Math.min(endy, areay - 1);
+
+                endx++;
+                endy++;
+
+                draw();
+
+                for (y = starty; y < endy; y++) {
+                    for (x = startx; x < endx; x++) {
+                        grid[y][x] = selection.color;
+                        drawRect(x, y)
+                    }
+                }
+
+                selection.down = false;
+            }
+        });
+
+        clear();
+        draw();
+    </script>
+</body>
+</html>
