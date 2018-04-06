@@ -2,26 +2,46 @@
 <body>
     <canvas id="canvas" width="900" height="595" />
     <script type="text/javascript">
-        let canvas = document.getElementById("canvas");
-        let ctx = canvas.getContext("2d");
+        const CANVAS = document.getElementById("canvas");
+        const CTX = CANVAS.getContext("2d");
 
-        let areax = 84;
-        let areay = 59;
+        const AREAX = 84;
+        const AREAY = 59;
 
-        let selection = {x:0, y:0, px:0, py:0, down:false, color:"#000"};
+        const COLORS = {
+            BLACK: "#000",
+            WHITE: "#fff",
+            OUTLINE: "#777",
+            SELECT: "#aaa"
+        };
 
-        ctx.strokeRect(areax*10 + 10, 10, 10, 10);
-        ctx.fillStyle = "#000";
-        ctx.fillRect(areax*10 + 10, 20, 10, 10);
-        ctx.strokeStyle = "#777";
-        ctx.strokeRect(areax*10 + 10, 20, 10, 10);
+        let selection = {
+            x:0,
+            y:0,
+            px:0,
+            py:0,
+            down:false,
+            color:COLORS.BLACK,
+            dims: {
+                x0:0,
+                y0:0,
+                x1:0,
+                x2:0
+            }
+        };
+
+        CTX.strokeRect(AREAX*10 + 10, 10, 10, 10);
+        CTX.fillStyle = COLORS.BLACK;
+        CTX.fillRect(AREAX*10 + 10, 20, 10, 10);
+        CTX.strokeStyle = COLORS.OUTLINE;
+        CTX.strokeRect(AREAX*10 + 10, 20, 10, 10);
 
         function constructGrid() {
             let newGrid = [];
-            for (let y = 0; y < areay; y++) {
+            for (let y = 0; y < AREAY; y++) {
                 newGrid.push([]);
-                for (let x = 0; x < areax; x++) {
-                    newGrid[y][x] = "#fff";
+                for (let x = 0; x < AREAX; x++) {
+                    newGrid[y][x] = COLORS.WHITE;
                 }
             }
             return newGrid;
@@ -34,28 +54,99 @@
 
         function drawRect(x, y, color) {
             if (color !== undefined) {
-                ctx.fillStyle = color;
+                CTX.fillStyle = color;
             } else {
-                ctx.fillStyle = grid[y][x];
+                CTX.fillStyle = grid[y][x];
             }
-            ctx.fillRect(x*10, y*10, 10, 10);
-            ctx.strokeRect(x*10, y*10, 10, 10);
+            CTX.fillRect(x*10, y*10, 10, 10);
+            CTX.strokeRect(x*10, y*10, 10, 10);
         }
 
         function clear() {
-            for (y = 0; y < areay; y++) {
-                for (x = 0; x < areax; x++) {
-                    ctx.fillStyle = "#fff";
+            for (y = 0; y < AREAY; y++) {
+                for (x = 0; x < AREAX; x++) {
+                    CTX.fillStyle = COLORS.WHITE;
                 }
             }
         }
 
         function draw() {
-            for (y = 0; y < areay; y++) {
-                for (x = 0; x < areax; x++) {
-                    ctx.fillStyle = grid[y][x];
-                    ctx.fillRect(x*10, y*10, 10, 10);
-                    ctx.strokeRect(x*10, y*10, 10, 10);
+            for (y = 0; y < AREAY; y++) {
+                for (x = 0; x < AREAX; x++) {
+                    CTX.fillStyle = grid[y][x];
+                    CTX.fillRect(x*10, y*10, 10, 10);
+                    CTX.strokeRect(x*10, y*10, 10, 10);
+                }
+            }
+        }
+
+        function getSelectionDims() {
+            let startx = Math.min(selection.px, selection.x);
+            let starty = Math.min(selection.py, selection.y);
+            let endx = Math.max(selection.px, selection.x);
+            let endy = Math.max(selection.py, selection.y);
+            startx = Math.min(startx, AREAX - 1);
+            starty = Math.min(starty, AREAY - 1);
+            endx = Math.min(endx, AREAX - 1);
+            endy = Math.min(endy, AREAY - 1);
+
+            endx++;
+            endy++;
+
+            return {x0: startx, y0: starty, x1: endx, y1: endy};
+        }
+
+        function checkDimDiff(x0, y0, x1, y1) {
+            if (x0 > selection.dims.x0) {
+                for (let y = 0; y < AREAY; y++) {
+                    for (let x = selection.dims.x0; x < x0; x++) {
+                        drawRect(x, y);
+                    }
+                }
+            } else {
+                for (let y = y0; y < y1; y++) {
+                    for (let x = x0; x < selection.dims.x0; x++) {
+                        drawRect(x, y, COLORS.SELECT);
+                    }
+                }
+            }
+            if (y0 > selection.dims.y0) {
+                for (let y = selection.dims.y0; y < y0; y++) {
+                    for (let x = x0; x < x1; x++) {
+                        drawRect(x, y);
+                    }
+                }
+            } else {
+                for (let y = y0; y < selection.dims.y0; y++) {
+                    for (let x = x0; x < x1; x++) {
+                        drawRect(x, y, COLORS.SELECT);
+                    }
+                }
+            }
+            if (x1 < selection.dims.x1) {
+                for (let y = 0; y < AREAY; y++) {
+                    for (let x = x1; x < selection.dims.x1; x++) {
+                        drawRect(x, y);
+                    }
+                }
+            } else {
+                for (let y = y0; y < y1; y++) {
+                    for (let x = selection.dims.x1; x < x1; x++) {
+                        drawRect(x, y, COLORS.SELECT);
+                    }
+                }
+            }
+            if (y1 < selection.dims.y1) {
+                for (let y = y1; y < selection.dims.y1; y++) {
+                    for (let x = x0; x < x1; x++) {
+                        drawRect(x, y);
+                    }
+                }
+            } else {
+                for (let y = selection.dims.y1; y < y1; y++) {
+                    for (let x = x0; x < x1; x++) {
+                        drawRect(x, y, COLORS.SELECT);
+                    }
                 }
             }
         }
@@ -74,78 +165,64 @@
             selection.y = y;
 
             if (!selection.down) {
-                if (grid[selection.py][selection.px] === "#aaa"
-                    && selection.px < areax && selection.py < areay) {
-                    grid[selection.py][selection.px] = "#fff";
+                if (grid[selection.py] !== undefined 
+                    && grid[selection.py][selection.px] !== undefined) {
                     drawRect(selection.px, selection.py);
                 }
 
                 selection.px = x;
                 selection.py = y;
 
-                if (grid[y][x] === "#fff" && x < areax && y < areay) {
-                    grid[y][x] = "#aaa";
-                    drawRect(x, y);
+                if (grid[y] !== undefined && grid[y][x] !== undefined) {
+                    drawRect(x, y, COLORS.SELECT);
                 }
             } else {
-                let startx = Math.min(selection.px, selection.x);
-                let starty = Math.min(selection.py, selection.y);
-                let endx = Math.max(selection.px, selection.x);
-                let endy = Math.max(selection.py, selection.y);
-                startx = Math.min(startx, areax - 1);
-                starty = Math.min(starty, areay - 1);
-                endx = Math.min(endx, areax - 1);
-                endy = Math.min(endy, areay - 1);
+                let dims = getSelectionDims();
 
-                endx++;
-                endy++;
+                checkDimDiff(dims.x0, dims.y0, dims.x1, dims.y1);
 
-                for (y = starty; y < endy; y++) {
-                    for (x = startx; x < endx; x++) {
-                        drawRect(x, y, "#aaa")
-                    }
-                }
+                selection.dims.x0 = dims.x0;
+                selection.dims.y0 = dims.y0;
+                selection.dims.x1 = dims.x1;
+                selection.dims.y1 = dims.y1;
             }
             
         });
 
         canvas.addEventListener("mousedown", function(e) {
-            if (selection.x < areax && selection.y < areay) {
+            if (selection.x < AREAX && selection.y < AREAY) {
                 selection.down = true;
+
+                selection.dims.x0 = selection.px;
+                selection.dims.y0 = selection.py;
+                selection.dims.x1 = selection.px;
+                selection.dims.y1 = selection.py;
             }
-            if ((selection.cx >= areax*10 + 10 && selection.cx < areax*10 + 20)
+            if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
                 && (selection.cy >= 10 && selection.cy < 20)) {
-                    selection.color = "#fff";
+                    selection.color = COLORS.WHITE;
             }
-            if ((selection.cx >= areax*10 + 10 && selection.cx < areax*10 + 20)
+            if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
                 && (selection.cy >= 20 && selection.cy < 30)) {
-                    selection.color = "#000";
+                    selection.color = COLORS.BLACK;
             }
         });
 
         canvas.addEventListener("mouseup", function(e) {
             if (selection.down) {
 
-                let startx = Math.min(selection.px, selection.x);
-                let starty = Math.min(selection.py, selection.y);
-                let endx = Math.max(selection.px, selection.x)
-                let endy = Math.max(selection.py, selection.y);
-                startx = Math.min(startx, areax - 1);
-                starty = Math.min(starty, areay - 1);
-                endx = Math.min(endx, areax - 1);
-                endy = Math.min(endy, areay - 1);
+                let dims = getSelectionDims();
 
-                endx++;
-                endy++;
+                for (y = dims.y0; y < dims.y1; y++) {
+                    for (x = dims.x0; x < dims.x1; x++) {
+                        grid[y][x] = selection.color;
+                    }
+                }
 
                 draw();
 
-                for (y = starty; y < endy; y++) {
-                    for (x = startx; x < endx; x++) {
-                        grid[y][x] = selection.color;
-                        drawRect(x, y)
-                    }
-                }
+                selection.px = selection.x;
+                selection.py = selection.y;
 
                 selection.down = false;
             }
