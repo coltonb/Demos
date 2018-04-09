@@ -1,18 +1,21 @@
 <html>
 <body>
-    <canvas id="canvas" width="900" height="595" />
+    <canvas id="canvas" width="900" height="595"></canvas>
     <script type="text/javascript">
         const CANVAS = document.getElementById("canvas");
-        const CTX = CANVAS.getContext("2d");
+        let ctx = CANVAS.getContext("2d");
+        ctx.translate(.5,.5);
+        ctx.lineWidth = 1;
 
         const AREAX = 84;
         const AREAY = 59;
 
-        const COLORS = {
+        const COLOR = {
             BLACK: "#000",
             WHITE: "#fff",
-            OUTLINE: "#777",
-            SELECT: "#aaa"
+            OUTLINE: "#ddd",
+            SELECT: "#aaa",
+            CSELECT: "#ff5555"
         };
 
         let selection = {
@@ -21,7 +24,7 @@
             px:0,
             py:0,
             down:false,
-            color:COLORS.BLACK,
+            color:COLOR.BLACK,
             dims: {
                 x0:0,
                 y0:0,
@@ -30,18 +33,18 @@
             }
         };
 
-        CTX.strokeRect(AREAX*10 + 10, 10, 10, 10);
-        CTX.fillStyle = COLORS.BLACK;
-        CTX.fillRect(AREAX*10 + 10, 20, 10, 10);
-        CTX.strokeStyle = COLORS.OUTLINE;
-        CTX.strokeRect(AREAX*10 + 10, 20, 10, 10);
+        ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
+        ctx.fillStyle = COLOR.BLACK;
+        ctx.fillRect(AREAX*10 + 10, 20, 10, 10);
+        ctx.strokeStyle = COLOR.CSELECT;
+        ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
 
         function constructGrid() {
             let newGrid = [];
             for (let y = 0; y < AREAY; y++) {
                 newGrid.push([]);
                 for (let x = 0; x < AREAX; x++) {
-                    newGrid[y][x] = COLORS.WHITE;
+                    newGrid[y][x] = COLOR.WHITE;
                 }
             }
             return newGrid;
@@ -54,28 +57,34 @@
 
         function drawRect(x, y, color) {
             if (color !== undefined) {
-                CTX.fillStyle = color;
+                ctx.fillStyle = color;
             } else {
-                CTX.fillStyle = grid[y][x];
+                ctx.fillStyle = grid[y][x];
             }
-            CTX.fillRect(x*10, y*10, 10, 10);
-            CTX.strokeRect(x*10, y*10, 10, 10);
+            
+            if (grid[y][x] === COLOR.BLACK && color === undefined) {
+                ctx.strokeStyle = COLOR.BLACK;
+            } else {
+                ctx.strokeStyle = COLOR.OUTLINE;
+            }
+            
+            ctx.fillRect(x*10, y*10, 9, 9);
+            ctx.strokeRect(x*10, y*10, 9, 9);
         }
 
         function clear() {
             for (y = 0; y < AREAY; y++) {
                 for (x = 0; x < AREAX; x++) {
-                    CTX.fillStyle = COLORS.WHITE;
+                    ctx.fillStyle = COLOR.WHITE;
                 }
             }
         }
 
         function draw() {
+            ctx.strokeStyle = COLOR.OUTLINE;
             for (y = 0; y < AREAY; y++) {
                 for (x = 0; x < AREAX; x++) {
-                    CTX.fillStyle = grid[y][x];
-                    CTX.fillRect(x*10, y*10, 10, 10);
-                    CTX.strokeRect(x*10, y*10, 10, 10);
+                   drawRect(x, y)
                 }
             }
         }
@@ -96,6 +105,12 @@
             return {x0: startx, y0: starty, x1: endx, y1: endy};
         }
 
+        function deselectColor() {
+            ctx.strokeStyle = COLOR.OUTLINE;
+            ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
+            ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
+        }
+
         function checkDimDiff(x0, y0, x1, y1) {
             if (x0 > selection.dims.x0) {
                 for (let y = 0; y < AREAY; y++) {
@@ -106,7 +121,7 @@
             } else {
                 for (let y = y0; y < y1; y++) {
                     for (let x = x0; x < selection.dims.x0; x++) {
-                        drawRect(x, y, COLORS.SELECT);
+                        drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
@@ -119,7 +134,7 @@
             } else {
                 for (let y = y0; y < selection.dims.y0; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y, COLORS.SELECT);
+                        drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
@@ -132,7 +147,7 @@
             } else {
                 for (let y = y0; y < y1; y++) {
                     for (let x = selection.dims.x1; x < x1; x++) {
-                        drawRect(x, y, COLORS.SELECT);
+                        drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
@@ -145,11 +160,24 @@
             } else {
                 for (let y = selection.dims.y1; y < y1; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y, COLORS.SELECT);
+                        drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
         }
+
+        document.addEventListener("keypress", function(e) {
+            deselectColor();
+            if (e.key === '1') {
+                ctx.strokeStyle = COLOR.CSELECT;
+                ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
+                selection.color = COLOR.WHITE;
+            } else if (e.key == '2') {
+                ctx.strokeStyle = COLOR.CSELECT;
+                ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
+                selection.color = COLOR.BLACK;
+            }
+        });
 
         canvas.addEventListener("mousemove", function(e) {
             let rect = canvas.getBoundingClientRect();
@@ -174,7 +202,7 @@
                 selection.py = y;
 
                 if (grid[y] !== undefined && grid[y][x] !== undefined) {
-                    drawRect(x, y, COLORS.SELECT);
+                    drawRect(x, y, COLOR.SELECT);
                 }
             } else {
                 let dims = getSelectionDims();
@@ -200,11 +228,17 @@
             }
             if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
                 && (selection.cy >= 10 && selection.cy < 20)) {
-                    selection.color = COLORS.WHITE;
+                    deselectColor();
+                    ctx.strokeStyle = COLOR.CSELECT;
+                    ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
+                    selection.color = COLOR.WHITE;
             }
             if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
                 && (selection.cy >= 20 && selection.cy < 30)) {
-                    selection.color = COLORS.BLACK;
+                    deselectColor();                    
+                    ctx.strokeStyle = COLOR.CSELECT;
+                    ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
+                    selection.color = COLOR.BLACK;
             }
         });
 
