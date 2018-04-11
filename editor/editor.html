@@ -1,13 +1,18 @@
 <html>
+<head>
+    <title>Pixel Editor</title> 
+    <style>
+        html, body {
+            overflow: hidden;
+            margin: 0;
+        }
+    </style>
+</head>
 <body>
     <canvas id="canvas" width="900" height="595"></canvas>
     <script type="text/javascript">
-        const CANVAS = document.getElementById("canvas");
-        let ctx = CANVAS.getContext("2d");
-
-        // Hack to remove anti-aliasing from 1-width lines
-        ctx.translate(.5,.5);
-        ctx.lineWidth = 1;
+        let canvas = null;
+        let ctx = null;
 
         // Our drawing area
         const AREAX = 84;
@@ -37,22 +42,10 @@
             }
         };
 
-        function drawColorButtons() {
-            // White Color Button
-            ctx.fillStyle = COLOR.WHITE;
-            ctx.strokeStyle = COLOR.OUTLINE;
-            ctx.fillRect(AREAX*10 + 10, 10, 10, 10);
-            ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
-
-            // Black Color Button
-            ctx.fillStyle = COLOR.BLACK;
-            ctx.strokeStyle = COLOR.CSELECT;
-            ctx.fillRect(AREAX*10 + 10, 20, 10, 10);
-            ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
-        }
-
         class Grid {
-            constructor(width, height) {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
                 this.width = width;
                 this.height = height;
 
@@ -63,6 +56,14 @@
                         this.pixels[y].push(COLOR.WHITE);
                     }
                 }
+            }
+
+            get realWidth() {
+                return this.width * 10;
+            }
+
+            get realHeight() {
+                return this.height * 10;
             }
 
             getColorAt(x, y) {
@@ -80,7 +81,7 @@
             drawRect(x, y, color=this.getColorAt(x, y)) {
                 ctx.fillStyle = color;
 
-                ctx.fillRect(x*10, y*10, 9, 9);
+                ctx.fillRect(this.x + x*10, this.y + y*10, 9, 9);
 
                 if (color === COLOR.WHITE || color === COLOR.SELECT) {
                     ctx.strokeStyle = COLOR.OUTLINE;
@@ -88,21 +89,21 @@
                     ctx.strokeStyle = color;
                 }
 
-                ctx.strokeRect(x*10, y*10, 9, 9);
+                ctx.strokeRect(this.x + x*10, this.y + y*10, 9, 9);
             }
 
             draw() {
-                for (let y = 0; y < AREAY; y++) {
-                    for (let x = 0; x < AREAX; x++) {
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
                         grid.drawRect(x, y);
                     }
                 }
             }
 
             clear() {
-                for (y = 0; y < AREAY; y++) {
-                    for (x = 0; x < AREAX; x++) {
-                        grid.setColorAt(x, y, COLOT.WHITE);
+                for (y = 0; y < this.height; y++) {
+                    for (x = 0; x < this.width; x++) {
+                        grid.setColorAt(x, y, COLOR.WHITE);
                     }
                 }
             }
@@ -113,6 +114,30 @@
                 this.x = x;
                 this.y = y;
                 this.colorButtons = [];
+            }
+
+            get width() {
+                return 10;
+            }
+
+            get height() {
+                return this.colorButtons.length * 10;
+            }
+
+            set x(x) {
+                if (this.colorButtons !== undefined) {
+                    for (let i = 0; i < this.colorButtons.length; i++) {
+                        this.colorButtons[i].x = x;
+                    }
+                }
+            }
+
+            set y(y) {
+                if (this.colorButtons !== undefined) {
+                    for (let i = 0; i < this.colorButtons.length; i++) {
+                        this.colorButtons[i].y = y + i * 10;
+                    }
+                }
             }
 
             addColorButton(colorButton) {
@@ -129,9 +154,9 @@
 
             onClickListener() {
                 if (selection.cx >= this.x &&
-                    selection.cx <= this.x + 10 &&
+                    selection.cx <= this.x + this.width &&
                     selection.cy >= this.y &&
-                    selection.cy <= this.y + this.colorButtons.length * 10) {
+                    selection.cy <= this.y + this.height) {
                     for (let i = 0; i < this.colorButtons.length; i++) {
                         if (this.colorButtons[i].onClickListener()) {
                             this.draw();
@@ -194,36 +219,70 @@
             }
         }
 
-        let grid = new Grid(AREAX, AREAY);
-        let colorMenu = new ColorMenu(AREAX * 10 + 10, 10);
+        let grid = null;
+        let colorMenu = null;
 
-        let whiteButton = new ColorButton(COLOR.WHITE);
-        let blackButton = new ColorButton(COLOR.BLACK);
-        
-        whiteButton.key = 1;
-        blackButton.key = 2; 
-
-        colorMenu.addColorButton(whiteButton);
-        colorMenu.addColorButton(blackButton);
-
-
-        for (let i = 0; i < 8; i++) {
-            let newButton = new ColorButton(`hsl(${i*45},100%,50%)`);
-            newButton.key = (i + 3) % 10;
-            colorMenu.addColorButton(newButton);
+        function draw() {
+            colorMenu.draw();
+            grid.draw();
         }
 
-        colorMenu.draw();
+        function init() {
+            canvas = document.getElementById("canvas");
+            ctx = canvas.getContext("2d");
+
+            ctx.lineWidth = 1;
+
+            grid = new Grid(10, 10, AREAX, AREAY);
+            colorMenu = new ColorMenu(grid.x + grid.realWidth + 10, 10);
+
+            let whiteButton = new ColorButton(COLOR.WHITE);
+            let blackButton = new ColorButton(COLOR.BLACK);
+            
+            whiteButton.key = 1;
+            blackButton.key = 2; 
+
+            colorMenu.addColorButton(whiteButton);
+            colorMenu.addColorButton(blackButton);
+
+            for (let i = 0; i < 8; i++) {
+                let newButton = new ColorButton(`hsl(${i*45},100%,50%)`);
+                newButton.key = (i + 3) % 10;
+                colorMenu.addColorButton(newButton);
+            }
+
+            updateCanvasSize();
+        }
+
+        function updateCanvasSize() {
+            canvas.width = document.body.clientWidth;
+            canvas.height = document.body.clientHeight;
+
+            grid.x = canvas.width / 2 - grid.realWidth / 2;
+            grid.y = canvas.height / 2 - grid.realHeight / 2;
+
+            colorMenu.x = grid.x + grid.realWidth + 10;
+            colorMenu.y = grid.y;
+
+            if (grid.x % 1 != .5) {
+                ctx.translate(.5, 0);
+            }
+            if (grid.y % 1 != .5) {
+                ctx.translate(0, .5);
+            }
+
+            draw();
+        }
 
         function getSelectionDims() {
             let startx = Math.min(selection.px, selection.x);
             let starty = Math.min(selection.py, selection.y);
             let endx = Math.max(selection.px, selection.x);
             let endy = Math.max(selection.py, selection.y);
-            startx = Math.min(startx, AREAX - 1);
-            starty = Math.min(starty, AREAY - 1);
-            endx = Math.min(endx, AREAX - 1);
-            endy = Math.min(endy, AREAY - 1);
+            startx = Math.max(startx, 0);
+            starty = Math.max(starty, 0);
+            endx = Math.min(endx, grid.width - 1);
+            endy = Math.min(endy, grid.height - 1);
 
             endx++;
             endy++;
@@ -233,7 +292,7 @@
 
         function drawDimDiff(x0, y0, x1, y1) {
             if (x0 > selection.dims.x0) {
-                for (let y = 0; y < AREAY; y++) {
+                for (let y = 0; y < grid.height; y++) {
                     for (let x = selection.dims.x0; x < x0; x++) {
                         grid.drawRect(x, y);
                     }
@@ -259,7 +318,7 @@
                 }
             }
             if (x1 < selection.dims.x1) {
-                for (let y = 0; y < AREAY; y++) {
+                for (let y = 0; y < grid.height; y++) {
                     for (let x = x1; x < selection.dims.x1; x++) {
                         grid.drawRect(x, y);
                     }
@@ -286,16 +345,16 @@
             }
         }
 
-        document.addEventListener("keypress", function(e) {
-            colorMenu.keyPressListener(e.key)
+        window.addEventListener("keypress", function(e) {
+            colorMenu.keyPressListener(e.key);
         });
 
-        canvas.addEventListener("mousemove", function(e) {
+        window.addEventListener("mousemove", function(e) {
             let rect = canvas.getBoundingClientRect();
             let cx = e.clientX - rect.left;
             let cy = e.clientY - rect.top;
-            let x = Math.floor((e.clientX - rect.left)/10);
-            let y = Math.floor((e.clientY - rect.top)/10);
+            let x = Math.floor((cx - grid.x)/10);
+            let y = Math.floor((cy - grid.y)/10);
 
             selection.cx = cx;
             selection.cy = cy;
@@ -327,8 +386,11 @@
 
         });
 
-        canvas.addEventListener("mousedown", function(e) {
-            if (selection.x < AREAX && selection.y < AREAY) {
+        window.addEventListener("mousedown", function(e) {
+            if (selection.cx < grid.x + grid.realWidth &&
+                selection.cx > grid.x &&
+                selection.cy < grid.y + grid.realHeight &&
+                selection.cy > grid.y) {
                 selection.down = true;
 
                 selection.dims.x0 = selection.px;
@@ -340,9 +402,8 @@
             clickedColor = colorMenu.onClickListener();
         });
 
-        canvas.addEventListener("mouseup", function(e) {
+        window.addEventListener("mouseup", function(e) {
             if (selection.down) {
-
                 let dims = getSelectionDims();
 
                 for (y = dims.y0; y < dims.y1; y++) {
@@ -360,7 +421,9 @@
             }
         });
 
-        grid.draw();
+        window.addEventListener("resize", updateCanvasSize);
+
+        init();
     </script>
 </body>
 </html>
