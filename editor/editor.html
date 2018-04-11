@@ -4,9 +4,12 @@
     <script type="text/javascript">
         const CANVAS = document.getElementById("canvas");
         let ctx = CANVAS.getContext("2d");
+
+        // Hack to remove anti-aliasing from 1-width lines
         ctx.translate(.5,.5);
         ctx.lineWidth = 1;
 
+        // Our drawing area
         const AREAX = 84;
         const AREAY = 59;
 
@@ -18,6 +21,7 @@
             CSELECT: "#ff5555"
         };
 
+        // All info collected on mouse position and action
         let selection = {
             x:0,
             y:0,
@@ -33,61 +37,183 @@
             }
         };
 
-        ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
-        ctx.fillStyle = COLOR.BLACK;
-        ctx.fillRect(AREAX*10 + 10, 20, 10, 10);
-        ctx.strokeStyle = COLOR.CSELECT;
-        ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
-
-        function constructGrid() {
-            let newGrid = [];
-            for (let y = 0; y < AREAY; y++) {
-                newGrid.push([]);
-                for (let x = 0; x < AREAX; x++) {
-                    newGrid[y][x] = COLOR.WHITE;
-                }
-            }
-            return newGrid;
-        }
-
-        let grid = constructGrid();
-
-
-        console.log(grid);
-
-        function drawRect(x, y, color) {
-            if (color !== undefined) {
-                ctx.fillStyle = color;
-            } else {
-                ctx.fillStyle = grid[y][x];
-            }
-            
-            if (grid[y][x] === COLOR.BLACK && color === undefined) {
-                ctx.strokeStyle = COLOR.BLACK;
-            } else {
-                ctx.strokeStyle = COLOR.OUTLINE;
-            }
-            
-            ctx.fillRect(x*10, y*10, 9, 9);
-            ctx.strokeRect(x*10, y*10, 9, 9);
-        }
-
-        function clear() {
-            for (y = 0; y < AREAY; y++) {
-                for (x = 0; x < AREAX; x++) {
-                    ctx.fillStyle = COLOR.WHITE;
-                }
-            }
-        }
-
-        function draw() {
+        function drawColorButtons() {
+            // White Color Button
+            ctx.fillStyle = COLOR.WHITE;
             ctx.strokeStyle = COLOR.OUTLINE;
-            for (y = 0; y < AREAY; y++) {
-                for (x = 0; x < AREAX; x++) {
-                   drawRect(x, y)
+            ctx.fillRect(AREAX*10 + 10, 10, 10, 10);
+            ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
+
+            // Black Color Button
+            ctx.fillStyle = COLOR.BLACK;
+            ctx.strokeStyle = COLOR.CSELECT;
+            ctx.fillRect(AREAX*10 + 10, 20, 10, 10);
+            ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
+        }
+
+        class Grid {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+
+                this.pixels = [];
+                for (let y = 0; y < height; y++) {
+                    this.pixels.push([]);
+                    for (let x = 0; x < width; x++) {
+                        this.pixels[y].push(COLOR.WHITE);
+                    }
+                }
+            }
+
+            getColorAt(x, y) {
+                if (this.pixels[y] !== undefined) {
+                    return this.pixels[y][x];
+                }
+            }
+
+            setColorAt(x, y, color) {
+                if (this.pixels[y] !== undefined && this.pixels[y][x] !== undefined) {
+                    this.pixels[y][x] = color;
+                }
+            }
+
+            drawRect(x, y, color=this.getColorAt(x, y)) {
+                ctx.fillStyle = color;
+
+                ctx.fillRect(x*10, y*10, 9, 9);
+
+                if (color === COLOR.WHITE || color === COLOR.SELECT) {
+                    ctx.strokeStyle = COLOR.OUTLINE;
+                } else {
+                    ctx.strokeStyle = color;
+                }
+
+                ctx.strokeRect(x*10, y*10, 9, 9);
+            }
+
+            draw() {
+                for (let y = 0; y < AREAY; y++) {
+                    for (let x = 0; x < AREAX; x++) {
+                        grid.drawRect(x, y);
+                    }
+                }
+            }
+
+            clear() {
+                for (y = 0; y < AREAY; y++) {
+                    for (x = 0; x < AREAX; x++) {
+                        grid.setColorAt(x, y, COLOT.WHITE);
+                    }
                 }
             }
         }
+
+        class ColorMenu {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.colorButtons = [];
+            }
+
+            addColorButton(colorButton) {
+                colorButton.x = this.x;
+                colorButton.y = this.y + this.colorButtons.length * 10;
+                this.colorButtons.push(colorButton);
+            }
+
+            draw() {
+                for (let i = 0; i < this.colorButtons.length; i++) {
+                    this.colorButtons[i].draw();
+                }
+            }
+
+            onClickListener() {
+                if (selection.cx >= this.x &&
+                    selection.cx <= this.x + 10 &&
+                    selection.cy >= this.y &&
+                    selection.cy <= this.y + this.colorButtons.length * 10) {
+                    for (let i = 0; i < this.colorButtons.length; i++) {
+                        if (this.colorButtons[i].onClickListener()) {
+                            this.draw();
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            keyPressListener(key) {
+                for (let i = 0; i < this.colorButtons.length; i++) {
+                    if (this.colorButtons[i].keyPressListener(key)) {
+                        this.draw();
+                        return true;
+                    }
+                }
+            }
+        }
+
+        class ColorButton {
+            constructor(color, x=0, y=0) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.key = "";
+            }
+
+            keyPressListener(key) {
+                if (this.key == key) {
+                    this.select();
+                    return true;
+                }
+            }
+
+            select() {
+                selection.color = this.color;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+
+                if (selection.color == this.color) {
+                    ctx.strokeStyle = COLOR.CSELECT;
+                } else {
+                    ctx.strokeStyle = COLOR.OUTLINE;
+                }
+
+                ctx.fillRect(this.x, this.y, 9, 9);
+                ctx.strokeRect(this.x, this.y, 9, 9);
+            }
+
+            onClickListener() {
+                if (selection.cx >= this.x &&
+                    selection.cx <= this.x + 10 &&
+                    selection.cy >= this.y &&
+                    selection.cy <= this.y + 10) {
+                        this.select();
+                        return true;
+                    }
+            }
+        }
+
+        let grid = new Grid(AREAX, AREAY);
+        let colorMenu = new ColorMenu(AREAX * 10 + 10, 10);
+
+        let whiteButton = new ColorButton(COLOR.WHITE);
+        let blackButton = new ColorButton(COLOR.BLACK);
+        
+        whiteButton.key = 1;
+        blackButton.key = 2; 
+
+        colorMenu.addColorButton(whiteButton);
+        colorMenu.addColorButton(blackButton);
+
+
+        for (let i = 0; i < 8; i++) {
+            let newButton = new ColorButton(`hsl(${i*45},100%,50%)`);
+            newButton.key = (i + 3) % 10;
+            colorMenu.addColorButton(newButton);
+        }
+
+        colorMenu.draw();
 
         function getSelectionDims() {
             let startx = Math.min(selection.px, selection.x);
@@ -105,78 +231,63 @@
             return {x0: startx, y0: starty, x1: endx, y1: endy};
         }
 
-        function deselectColor() {
-            ctx.strokeStyle = COLOR.OUTLINE;
-            ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
-            ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
-        }
-
-        function checkDimDiff(x0, y0, x1, y1) {
+        function drawDimDiff(x0, y0, x1, y1) {
             if (x0 > selection.dims.x0) {
                 for (let y = 0; y < AREAY; y++) {
                     for (let x = selection.dims.x0; x < x0; x++) {
-                        drawRect(x, y);
+                        grid.drawRect(x, y);
                     }
                 }
             } else {
                 for (let y = y0; y < y1; y++) {
                     for (let x = x0; x < selection.dims.x0; x++) {
-                        drawRect(x, y, COLOR.SELECT);
+                        grid.drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
             if (y0 > selection.dims.y0) {
                 for (let y = selection.dims.y0; y < y0; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y);
+                        grid.drawRect(x, y);
                     }
                 }
             } else {
                 for (let y = y0; y < selection.dims.y0; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y, COLOR.SELECT);
+                        grid.drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
             if (x1 < selection.dims.x1) {
                 for (let y = 0; y < AREAY; y++) {
                     for (let x = x1; x < selection.dims.x1; x++) {
-                        drawRect(x, y);
+                        grid.drawRect(x, y);
                     }
                 }
             } else {
                 for (let y = y0; y < y1; y++) {
                     for (let x = selection.dims.x1; x < x1; x++) {
-                        drawRect(x, y, COLOR.SELECT);
+                        grid.drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
             if (y1 < selection.dims.y1) {
                 for (let y = y1; y < selection.dims.y1; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y);
+                        grid.drawRect(x, y);
                     }
                 }
             } else {
                 for (let y = selection.dims.y1; y < y1; y++) {
                     for (let x = x0; x < x1; x++) {
-                        drawRect(x, y, COLOR.SELECT);
+                        grid.drawRect(x, y, COLOR.SELECT);
                     }
                 }
             }
         }
 
         document.addEventListener("keypress", function(e) {
-            deselectColor();
-            if (e.key === '1') {
-                ctx.strokeStyle = COLOR.CSELECT;
-                ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
-                selection.color = COLOR.WHITE;
-            } else if (e.key == '2') {
-                ctx.strokeStyle = COLOR.CSELECT;
-                ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
-                selection.color = COLOR.BLACK;
-            }
+            colorMenu.keyPressListener(e.key)
         });
 
         canvas.addEventListener("mousemove", function(e) {
@@ -193,28 +304,27 @@
             selection.y = y;
 
             if (!selection.down) {
-                if (grid[selection.py] !== undefined 
-                    && grid[selection.py][selection.px] !== undefined) {
-                    drawRect(selection.px, selection.py);
+                if (grid.getColorAt(selection.px, selection.py) !== undefined) {
+                    grid.drawRect(selection.px, selection.py);
                 }
 
                 selection.px = x;
                 selection.py = y;
 
-                if (grid[y] !== undefined && grid[y][x] !== undefined) {
-                    drawRect(x, y, COLOR.SELECT);
+                if (grid.getColorAt(x, y) !== undefined) {
+                    grid.drawRect(x, y, COLOR.SELECT);
                 }
             } else {
                 let dims = getSelectionDims();
 
-                checkDimDiff(dims.x0, dims.y0, dims.x1, dims.y1);
+                drawDimDiff(dims.x0, dims.y0, dims.x1, dims.y1);
 
                 selection.dims.x0 = dims.x0;
                 selection.dims.y0 = dims.y0;
                 selection.dims.x1 = dims.x1;
                 selection.dims.y1 = dims.y1;
             }
-            
+
         });
 
         canvas.addEventListener("mousedown", function(e) {
@@ -226,20 +336,8 @@
                 selection.dims.x1 = selection.px;
                 selection.dims.y1 = selection.py;
             }
-            if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
-                && (selection.cy >= 10 && selection.cy < 20)) {
-                    deselectColor();
-                    ctx.strokeStyle = COLOR.CSELECT;
-                    ctx.strokeRect(AREAX*10 + 10, 10, 10, 10);
-                    selection.color = COLOR.WHITE;
-            }
-            if ((selection.cx >= AREAX*10 + 10 && selection.cx < AREAX*10 + 20)
-                && (selection.cy >= 20 && selection.cy < 30)) {
-                    deselectColor();                    
-                    ctx.strokeStyle = COLOR.CSELECT;
-                    ctx.strokeRect(AREAX*10 + 10, 20, 10, 10);
-                    selection.color = COLOR.BLACK;
-            }
+
+            clickedColor = colorMenu.onClickListener();
         });
 
         canvas.addEventListener("mouseup", function(e) {
@@ -249,11 +347,11 @@
 
                 for (y = dims.y0; y < dims.y1; y++) {
                     for (x = dims.x0; x < dims.x1; x++) {
-                        grid[y][x] = selection.color;
+                        grid.setColorAt(x, y, selection.color);
                     }
                 }
 
-                draw();
+                grid.draw();
 
                 selection.px = selection.x;
                 selection.py = selection.y;
@@ -262,8 +360,7 @@
             }
         });
 
-        clear();
-        draw();
+        grid.draw();
     </script>
 </body>
 </html>
