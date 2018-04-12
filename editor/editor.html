@@ -111,9 +111,9 @@
 
         class ColorMenu {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.colorButtons = [];
+                this._x = x;
+                this._y = y;
+                this._colorButtons = [];
             }
 
             get width() {
@@ -121,34 +121,44 @@
             }
 
             get height() {
-                return this.colorButtons.length * 10;
+                return this._colorButtons.length * 10;
+            }
+
+            get x() {
+                return this._x;
+            }
+
+            get y() {
+                return this._y;
             }
 
             set x(x) {
-                if (this.colorButtons !== undefined) {
-                    for (let i = 0; i < this.colorButtons.length; i++) {
-                        this.colorButtons[i].x = x;
+                if (this._colorButtons !== undefined) {
+                    for (let i = 0; i < this._colorButtons.length; i++) {
+                        this._colorButtons[i].x = x;
                     }
                 }
+                this._x = x;
             }
 
             set y(y) {
-                if (this.colorButtons !== undefined) {
-                    for (let i = 0; i < this.colorButtons.length; i++) {
-                        this.colorButtons[i].y = y + i * 10;
+                if (this._colorButtons !== undefined) {
+                    for (let i = 0; i < this._colorButtons.length; i++) {
+                        this._colorButtons[i].y = y + i * 10;
                     }
                 }
+                this._y = y;
             }
 
             addColorButton(colorButton) {
                 colorButton.x = this.x;
-                colorButton.y = this.y + this.colorButtons.length * 10;
-                this.colorButtons.push(colorButton);
+                colorButton.y = this.y + this._colorButtons.length * 10;
+                this._colorButtons.push(colorButton);
             }
 
             draw() {
-                for (let i = 0; i < this.colorButtons.length; i++) {
-                    this.colorButtons[i].draw();
+                for (let i = 0; i < this._colorButtons.length; i++) {
+                    this._colorButtons[i].draw();
                 }
             }
 
@@ -157,8 +167,8 @@
                     selection.cx <= this.x + this.width &&
                     selection.cy >= this.y &&
                     selection.cy <= this.y + this.height) {
-                    for (let i = 0; i < this.colorButtons.length; i++) {
-                        if (this.colorButtons[i].onClickListener()) {
+                    for (let i = 0; i < this._colorButtons.length; i++) {
+                        if (this._colorButtons[i].onClickListener()) {
                             this.draw();
                             return true;
                         }
@@ -167,8 +177,8 @@
             }
 
             keyPressListener(key) {
-                for (let i = 0; i < this.colorButtons.length; i++) {
-                    if (this.colorButtons[i].keyPressListener(key)) {
+                for (let i = 0; i < this._colorButtons.length; i++) {
+                    if (this._colorButtons[i].keyPressListener(key)) {
                         this.draw();
                         return true;
                     }
