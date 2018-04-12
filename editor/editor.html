@@ -114,6 +114,7 @@
                 this._x = x;
                 this._y = y;
                 this._colorButtons = [];
+                this._selection = null;
             }
 
             get width() {
@@ -162,13 +163,31 @@
                 }
             }
 
-            onClickListener() {
-                if (selection.cx >= this.x &&
-                    selection.cx <= this.x + this.width &&
-                    selection.cy >= this.y &&
-                    selection.cy <= this.y + this.height) {
+            onWheelListener(event) {
+                if (event.wheelDelta > 0) {
+                    this._selection -= 1;
+                    if (this._selection < 0) {
+                        this._selection = this._colorButtons.length - 1;
+                    }
+                } else {
+                    this._selection = (this._selection + 1) % this._colorButtons.length;
+                }
+                this._colorButtons[this._selection].select();
+                this.draw();
+                return true;
+            }
+
+            onClickListener(event) {
+                let rect = canvas.getBoundingClientRect();
+                let mouseX = event.clientX - rect.left;
+                let mouseY = event.clientY - rect.top;
+                if (mouseX >= this.x &&
+                    mouseX <= this.x + this.width &&
+                    mouseY >= this.y &&
+                    mouseY <= this.y + this.height) {
                     for (let i = 0; i < this._colorButtons.length; i++) {
-                        if (this._colorButtons[i].onClickListener()) {
+                        if (this._colorButtons[i].onClickListener(event)) {
+                            this._selection = i;
                             this.draw();
                             return true;
                         }
@@ -176,9 +195,11 @@
                 }
             }
 
-            keyPressListener(key) {
+            keyPressListener(event) {
+                let key = event.key;
                 for (let i = 0; i < this._colorButtons.length; i++) {
                     if (this._colorButtons[i].keyPressListener(key)) {
+                        this._selection = i;
                         this.draw();
                         return true;
                     }
@@ -218,11 +239,14 @@
                 ctx.strokeRect(this.x, this.y, 9, 9);
             }
 
-            onClickListener() {
-                if (selection.cx >= this.x &&
-                    selection.cx <= this.x + 10 &&
-                    selection.cy >= this.y &&
-                    selection.cy <= this.y + 10) {
+            onClickListener(event) {
+                let rect = canvas.getBoundingClientRect();
+                let mouseX = event.clientX - rect.left;
+                let mouseY = event.clientY - rect.top;
+                if (mouseX >= this.x &&
+                    mouseX <= this.x + 10 &&
+                    mouseY >= this.y &&
+                    mouseY <= this.y + 10) {
                         this.select();
                         return true;
                     }
@@ -262,6 +286,7 @@
             }
 
             updateCanvasSize();
+            addEventListeners();
         }
 
         function updateCanvasSize() {
@@ -355,83 +380,89 @@
             }
         }
 
-        window.addEventListener("keypress", function(e) {
-            colorMenu.keyPressListener(e.key);
-        });
+        function addEventListeners() {
+            window.addEventListener("wheel", function(event) {
+                colorMenu.onWheelListener(event);
+            })
 
-        window.addEventListener("mousemove", function(e) {
-            let rect = canvas.getBoundingClientRect();
-            let cx = e.clientX - rect.left;
-            let cy = e.clientY - rect.top;
-            let x = Math.floor((cx - grid.x)/10);
-            let y = Math.floor((cy - grid.y)/10);
+            window.addEventListener("keypress", function(event) {
+                colorMenu.keyPressListener(event);
+            });
 
-            selection.cx = cx;
-            selection.cy = cy;
+            window.addEventListener("mousemove", function(e) {
+                let rect = canvas.getBoundingClientRect();
+                let cx = e.clientX - rect.left;
+                let cy = e.clientY - rect.top;
+                let x = Math.floor((cx - grid.x)/10);
+                let y = Math.floor((cy - grid.y)/10);
 
-            selection.x = x;
-            selection.y = y;
+                selection.cx = cx;
+                selection.cy = cy;
 
-            if (!selection.down) {
-                if (grid.getColorAt(selection.px, selection.py) !== undefined) {
-                    grid.drawRect(selection.px, selection.py);
-                }
+                selection.x = x;
+                selection.y = y;
 
-                selection.px = x;
-                selection.py = y;
-
-                if (grid.getColorAt(x, y) !== undefined) {
-                    grid.drawRect(x, y, COLOR.SELECT);
-                }
-            } else {
-                let dims = getSelectionDims();
-
-                drawDimDiff(dims.x0, dims.y0, dims.x1, dims.y1);
-
-                selection.dims.x0 = dims.x0;
-                selection.dims.y0 = dims.y0;
-                selection.dims.x1 = dims.x1;
-                selection.dims.y1 = dims.y1;
-            }
-
-        });
-
-        window.addEventListener("mousedown", function(e) {
-            if (selection.cx < grid.x + grid.realWidth &&
-                selection.cx > grid.x &&
-                selection.cy < grid.y + grid.realHeight &&
-                selection.cy > grid.y) {
-                selection.down = true;
-
-                selection.dims.x0 = selection.px;
-                selection.dims.y0 = selection.py;
-                selection.dims.x1 = selection.px;
-                selection.dims.y1 = selection.py;
-            }
-
-            clickedColor = colorMenu.onClickListener();
-        });
-
-        window.addEventListener("mouseup", function(e) {
-            if (selection.down) {
-                let dims = getSelectionDims();
-
-                for (y = dims.y0; y < dims.y1; y++) {
-                    for (x = dims.x0; x < dims.x1; x++) {
-                        grid.setColorAt(x, y, selection.color);
+                if (!selection.down) {
+                    if (grid.getColorAt(selection.px, selection.py) !== undefined) {
+                        grid.drawRect(selection.px, selection.py);
                     }
+
+                    selection.px = x;
+                    selection.py = y;
+
+                    if (grid.getColorAt(x, y) !== undefined) {
+                        grid.drawRect(x, y, COLOR.SELECT);
+                    }
+                } else {
+                    let dims = getSelectionDims();
+
+                    drawDimDiff(dims.x0, dims.y0, dims.x1, dims.y1);
+
+                    selection.dims.x0 = dims.x0;
+                    selection.dims.y0 = dims.y0;
+                    selection.dims.x1 = dims.x1;
+                    selection.dims.y1 = dims.y1;
                 }
 
-                grid.draw();
+            });
 
-                selection.px = selection.x;
-                selection.py = selection.y;
+            window.addEventListener("mousedown", function(event) {
+                if (selection.cx < grid.x + grid.realWidth &&
+                    selection.cx > grid.x &&
+                    selection.cy < grid.y + grid.realHeight &&
+                    selection.cy > grid.y) {
+                    selection.down = true;
 
-                selection.down = false;
-            }
-        });
+                    selection.dims.x0 = selection.px;
+                    selection.dims.y0 = selection.py;
+                    selection.dims.x1 = selection.px;
+                    selection.dims.y1 = selection.py;
+                }
 
-        window.addEventListener("resize", updateCanvasSize);
+                clickedColor = colorMenu.onClickListener(event);
+            });
+
+            window.addEventListener("mouseup", function(e) {
+                if (selection.down) {
+                    let dims = getSelectionDims();
+
+                    for (y = dims.y0; y < dims.y1; y++) {
+                        for (x = dims.x0; x < dims.x1; x++) {
+                            grid.setColorAt(x, y, selection.color);
+                        }
+                    }
+
+                    grid.draw();
+
+                    selection.px = selection.x;
+                    selection.py = selection.y;
+
+                    selection.down = false;
+                }
+            });
+
+            window.addEventListener("resize", updateCanvasSize);
+        }
 
         init();
     </script>
