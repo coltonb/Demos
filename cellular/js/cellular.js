@@ -12,12 +12,20 @@ class Cell {
   }
 }
 
+const MODES = {
+  Move: '0',
+  Freeze: '1',
+  Conway: '2',
+  Seeds: '3',
+  "Brian's Brain": '4',
+};
+
 class CellSpace {
-  constructor(canvas, mode) {
+  constructor(canvas, mode = MODES.Conway) {
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
-    this.context = canvas.getContext("2d");
+    this.context = canvas.getContext('2d');
     this.imageData = this.context.createImageData(this.width, this.height);
     this.cellSpace = CellSpace.generateCellSpace(this.width, this.height);
     this.iteration = 0;
@@ -28,33 +36,12 @@ class CellSpace {
     return Math.floor(Math.random() * 255);
   }
 
-  static get MOVE_MODE() {
-    return 0;
-  }
-
-  static get FREEZE_MODE() {
-    return 1;
-  }
-
-  static get FALL_MODE() {
-    return 2;
-  }
-
-  static get CONWAY_MODE() {
-    return 3;
-  }
-
-  static get BRIANS_BRAIN() {
-    return 4;
-  }
-
   static get outOfBoundsError() {
     return new Error('Coordinates are out of bounds!');
   }
 
   static get activeError() {
-    return new Error('There is already an active \
-      cell at the given coordinates!');
+    return new Error('There is already an active cell at the given coordinates!');
   }
 
   static get notActiveError() {
@@ -66,8 +53,8 @@ class CellSpace {
   }
 
   clear() {
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
+    for (let y = 0; y < this.height; y += 1) {
+      for (let x = 0; x < this.width; x += 1) {
         const cell = this.getCell(x, y);
         cell.state = 0;
         cell.nextState = 0;
@@ -76,15 +63,14 @@ class CellSpace {
     }
   }
 
-  randomFill(density = 0.10) {
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
+  randomFill(density = 0.1) {
+    for (let y = 0; y < this.height; y += 1) {
+      for (let x = 0; x < this.width; x += 1) {
         const randomValue = Math.random();
         const cell = this.getCell(x, y);
         if (randomValue >= 1 - density) {
           cell.state = 1;
           cell.nextState = 1;
-          cell.setColor(0, 255, 0);
         } else {
           cell.state = 0;
           cell.nextState = 0;
@@ -95,11 +81,11 @@ class CellSpace {
   }
 
   isInBounds(x, y) {
-    return (x >= 0 && x < this.width) && (y >= 0 && y < this.height);
+    return x >= 0 && x < this.width && (y >= 0 && y < this.height);
   }
 
   isAtEdge(x, y) {
-    return (x === 0 || x === this.width - 1) || (y === 0 || y === this.height - 1);
+    return x === 0 || x === this.width - 1 || (y === 0 || y === this.height - 1);
   }
 
   validateIsInBounds(x, y) {
@@ -107,7 +93,7 @@ class CellSpace {
   }
 
   getCell(x, y) {
-    this.validateIsInBounds(x, y)
+    this.validateIsInBounds(x, y);
 
     return this.cellSpace[y][x];
   }
@@ -115,7 +101,7 @@ class CellSpace {
   modifyCell(x, y, properties = {}) {
     this.validateIsInBounds(x, y);
 
-    const cell = this.getCell(x, y)
+    const cell = this.getCell(x, y);
     cell.updateProperties(properties);
     return cell;
   }
@@ -139,7 +125,7 @@ class CellSpace {
     this.validateIsInBounds(x, y);
 
     const cell = this.getCell(x, y);
-    if (this.mode == CellSpace.MOVE_MODE) {
+    if (this.mode === MODES.Move) {
       if (cell.state !== 1) return;
 
       const newX = x + Math.floor(Math.random() * 3) - 1;
@@ -155,7 +141,7 @@ class CellSpace {
           cell.setColor(0, 0, 0);
         }
       }
-    } else if (this.mode == CellSpace.FREEZE_MODE) {
+    } else if (this.mode === MODES.Freeze) {
       if (cell.state !== 1) return;
 
       const newX = x + Math.floor(Math.random() * 3) - 1;
@@ -175,31 +161,39 @@ class CellSpace {
           neighbor.nextState = 2;
           neighbor.setColor(0, 0, 255);
         }
-      } else {
-        if (this.hasNeighborWithState(x, y, 2)) {
-          cell.nextState = 2;
-          cell.setColor(0, 0, 255);
-        }
+      } else if (this.hasNeighborWithState(x, y, 2)) {
+        cell.nextState = 2;
+        cell.setColor(0, 0, 255);
       }
-    } else if (this.mode == CellSpace.CONWAY_MODE) {
-      const activeNeighborCount =
-        this.neighborsWithState(x, y, 1);
+    } else if (this.mode === MODES.Conway) {
+      const activeNeighborCount = this.neighborsWithState(x, y, 1);
 
       if (cell.state === 1) {
         if (activeNeighborCount < 2 || activeNeighborCount > 3) {
           cell.nextState = 0;
         }
-      } else {
-        if (activeNeighborCount === 3) {
-          cell.nextState = 1;
-          cell.setColor(0, 255, 0);
-        }
+      } else if (activeNeighborCount === 3) {
+        cell.nextState = 1;
+        cell.setColor(0, 255, 0);
       }
 
       cell.setColor(0, cell.state === 1 ? 255 : 0, 0);
-    } else if (this.mode == CellSpace.BRIANS_BRAIN) {
-      const activeNeighborCount =
-        this.neighborsWithState(x, y, 1);
+    } else if (this.mode === MODES.Seeds) {
+      const activeNeighborCount = this.neighborsWithState(x, y, 1);
+
+      if (cell.state === 1) {
+        cell.nextState = 0;
+      } else if (activeNeighborCount === 2) {
+        cell.nextState = 1;
+      }
+
+      cell.setColor(
+        0,
+        cell.nextState === 1 ? 255 : 0,
+        0,
+      );
+    } else if (this.mode === MODES["Brian's Brain"]) {
+      const activeNeighborCount = this.neighborsWithState(x, y, 1);
 
       if (cell.state === 1) {
         cell.nextState = 2;
@@ -209,15 +203,22 @@ class CellSpace {
         cell.nextState = 1;
       }
 
-      cell.setColor(cell.nextState === 2 ? 255 : 0, cell.nextState > 0 ? 255 : 0, cell.nextState === 2 ? 255 : 0)
+      cell.setColor(
+        cell.nextState === 2 ? 255 : 0,
+        cell.nextState > 0 ? 255 : 0,
+        cell.nextState === 2 ? 255 : 0,
+      );
     }
   }
 
   hasNeighborWithState(x, y, state) {
     for (let dY = y - 1; dY <= y + 1; dY += 1) {
       for (let dX = x - 1; dX <= x + 1; dX += 1) {
-        if (dX === x && dY === y) continue;
-        if (this.isInBounds(dX, dY) && this.getCell(dX, dY).state === state) {
+        if (
+          !(dX === x && dY === y)
+          && this.isInBounds(dX, dY)
+          && this.getCell(dX, dY).state === state
+        ) {
           return true;
         }
       }
@@ -229,8 +230,11 @@ class CellSpace {
     let count = 0;
     for (let dY = y - 1; dY <= y + 1; dY += 1) {
       for (let dX = x - 1; dX <= x + 1; dX += 1) {
-        if (dX === x && dY === y) continue;
-        if (this.isInBounds(dX, dY) && this.getCell(dX, dY).state === state) {
+        if (
+          !(dX === x && dY === y)
+          && this.isInBounds(dX, dY)
+          && this.getCell(dX, dY).state === state
+        ) {
           count += 1;
         }
       }
@@ -239,7 +243,7 @@ class CellSpace {
   }
 
   static generateCellSpace(width, height) {
-    let cells = [];
+    const cells = [];
     for (let y = 0; y < height; y += 1) {
       cells.push(new Array(width));
       for (let x = 0; x < width; x += 1) {
@@ -264,10 +268,10 @@ class CellSpace {
   }
 
   updateImageData() {
-    let data = this.imageData.data;
+    const { data } = this.imageData;
     for (let i = 0; i < data.length; i += 4) {
       const x = (i / 4) % this.width;
-      const y = ~~((i / 4) / this.width);
+      const y = Math.floor(i / 4 / this.width);
       const cell = this.getCell(x, y);
       data[i] = cell.color.r;
       data[i + 1] = cell.color.g;

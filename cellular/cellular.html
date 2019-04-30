@@ -1,86 +1,80 @@
 <html>
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="css/style.css">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico" />
+    <link rel="stylesheet" href="css/style.css" />
     <script type="text/javascript" src="js/dat.gui.min.js"></script>
     <script type="text/javascript" src="js/stats.min.js"></script>
     <title>Cellular</title>
-</head>
+  </head>
 
-<body>
-    <div id="sidebar">
-
-    </div>
+  <body>
+    <div id="sidebar"></div>
     <div id="container">
-        <canvas id="canvas" width=250 height=250></canvas>
+      <canvas id="canvas" width="250" height="250"></canvas>
     </div>
-    <script type="text/javascript" src="js/script.js"></script>
+    <script type="text/javascript" src="js/cellular.js"></script>
     <script type="text/javascript">
-        const canvas = document.querySelector("#canvas");
-        const cellSpace = new CellSpace(
-            canvas,
-            CellSpace.MOVE_MODE
-        )
+      const canvas = document.querySelector("#canvas");
+      const cellSpace = new CellSpace(canvas);
 
-        let controls = {
-            scale: 2.0,
-            run: true,
-            step: function () {
-                cellSpace.update();
-            },
-            fillDensity: 0.10,
-            clear: function () {
-                cellSpace.clear();
-            },
-            randomFill: function () {
-                cellSpace.randomFill(controls.fillDensity);
-            }
+      let controls = {
+        scale: 2.0,
+        run: true,
+        step: function() {
+          cellSpace.update();
+        },
+        fillDensity: 0.1,
+        clear: function() {
+          cellSpace.clear();
+        },
+        randomFill: function() {
+          cellSpace.randomFill(controls.fillDensity);
+          cellSpace.update();
         }
+      };
 
-        let gui = new dat.GUI();
+      let gui = new dat.GUI();
 
-        let viewFolder = gui.addFolder('View');
-        let scaleController = viewFolder.add(controls, 'scale', 1, 3);
-        scaleController.name('Scale');
-        scaleController.onChange(() => cellSpace.rescale(controls.scale));
+      let viewFolder = gui.addFolder("View");
+      let scaleController = viewFolder.add(controls, "scale", 1, 3);
+      scaleController.name("Scale");
+      scaleController.onChange(() => cellSpace.rescale(controls.scale));
 
-        let simulationFolder = gui.addFolder('Simulation');
-        simulationFolder.add(cellSpace, 'mode', {
-            Move: CellSpace.MOVE_MODE,
-            Freeze: CellSpace.FREEZE_MODE,
-            Conway: CellSpace.CONWAY_MODE,
-            "Brian's Brain": CellSpace.BRIANS_BRAIN
-        })
-            .name('Mode')
-            .onChange(() => controls.randomFill());
-        simulationFolder.add(controls, 'run').name('Running');
-        simulationFolder.add(controls, 'step').name('Step');
+      let simulationFolder = gui.addFolder("Simulation");
+      simulationFolder
+        .add(cellSpace, "mode", MODES)
+        .name("Mode")
+        .onChange(() => controls.randomFill());
+      simulationFolder.add(controls, "run").name("Running");
+      simulationFolder.add(controls, "step").name("Step");
 
-        let fillFolder = gui.addFolder('Fill');
-        fillFolder.add(controls, 'fillDensity', 0.01, 1.00).name('Density')
-        fillFolder.add(controls, 'randomFill').name('Fill');
-        fillFolder.add(controls, 'clear').name('Clear');
+      let fillFolder = gui.addFolder("Fill");
+      fillFolder.add(controls, "fillDensity", 0.01, 1.0).name("Density");
+      fillFolder.add(controls, "randomFill").name("Fill");
+      fillFolder.add(controls, "clear").name("Clear");
 
-        simulationFolder.open();
-        viewFolder.open();
+      simulationFolder.open();
+      viewFolder.open();
 
-        cellSpace.randomFill();
+      cellSpace.randomFill();
 
-        let stats = new Stats();
-        stats.showPanel(0);
-        document.body.appendChild(stats.dom);
+      let stats = new Stats();
+      stats.showPanel(0);
+      document.body.appendChild(stats.dom);
 
-        function updateLoop() {
-            stats.begin();
-            if (controls.run) cellSpace.update();
-            stats.end();
-            requestAnimationFrame(() => updateLoop());
-        }
+      function updateLoop() {
+        stats.begin();
+        if (controls.run) cellSpace.update();
+        stats.end();
+        requestAnimationFrame(() => updateLoop());
+      }
 
-        updateLoop();
+      updateLoop();
     </script>
-</body>
-
+  </body>
 </html>
