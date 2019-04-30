@@ -25,18 +25,50 @@
       let controls = {
         scale: 2.0,
         run: true,
+        mouseDown: false,
+        mouseState: 1,
         step: function() {
-          cellSpace.update();
+          cellSpace.step();
         },
         fillDensity: 0.1,
         clear: function() {
           cellSpace.clear();
+          cellSpace.paintCells();
         },
         randomFill: function() {
           cellSpace.randomFill(controls.fillDensity);
-          cellSpace.update();
+        },
+        toggleCell: function(x, y) {
+          if (cellSpace.isInBounds(x, y)) {
+            const cell = cellSpace.getCell(x, y);
+            if (cell.state === 0) {
+              cell.forceState(1);
+              return 1;
+            } else {
+              cell.forceState(0);
+              return 0;
+            }
+          }
+        },
+        setCell: function(x, y, state) {
+          if (cellSpace.isInBounds(x, y)) {
+            cellSpace.getCell(x, y).forceState(state);
+          }
         }
       };
+
+      canvas.addEventListener("mousedown", e => {
+        controls.mouseDown = true;
+        controls.mouseState = controls.toggleCell(e.offsetX, e.offsetY);
+      });
+
+      window.addEventListener("mouseup", () => (controls.mouseDown = false));
+
+      canvas.addEventListener("mousemove", e => {
+        if (controls.mouseDown) {
+          controls.setCell(e.offsetX, e.offsetY, controls.mouseState);
+        }
+      });
 
       let gui = new dat.GUI();
 
@@ -69,7 +101,8 @@
 
       function updateLoop() {
         stats.begin();
-        if (controls.run) cellSpace.update();
+        if (controls.run) cellSpace.step();
+        cellSpace.draw();
         stats.end();
         requestAnimationFrame(() => updateLoop());
       }
