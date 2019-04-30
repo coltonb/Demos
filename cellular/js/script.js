@@ -135,20 +135,6 @@ class CellSpace {
     this.setCell(newX, newY, firstCell);
   }
 
-  neighborList(x, y) {
-    const self = this;
-    return [
-      { x: x + 0, y: y - 1 },
-      { x: x + 1, y: y - 1 },
-      { x: x + 1, y: y + 0 },
-      { x: x + 1, y: y + 1 },
-      { x: x + 0, y: y + 1 },
-      { x: x - 1, y: y + 1 },
-      { x: x - 1, y: y + 0 },
-      { x: x - 1, y: y - 1 }
-    ].filter((neighbor) => self.isInBounds(neighbor.x, neighbor.y));
-  }
-
   updateCell(x, y) {
     this.validateIsInBounds(x, y);
 
@@ -197,7 +183,7 @@ class CellSpace {
       }
     } else if (this.mode == CellSpace.CONWAY_MODE) {
       const activeNeighborCount =
-        this.neighborsWithState(x, y, 1).length;
+        this.neighborsWithState(x, y, 1);
 
       if (cell.state === 1) {
         if (activeNeighborCount < 2 || activeNeighborCount > 3) {
@@ -213,7 +199,7 @@ class CellSpace {
       cell.setColor(0, cell.state === 1 ? 255 : 0, 0);
     } else if (this.mode == CellSpace.BRIANS_BRAIN) {
       const activeNeighborCount =
-        this.neighborsWithState(x, y, 1).length;
+        this.neighborsWithState(x, y, 1);
 
       if (cell.state === 1) {
         cell.nextState = 2;
@@ -228,16 +214,28 @@ class CellSpace {
   }
 
   hasNeighborWithState(x, y, state) {
-    const self = this;
-    return this.neighborList(x, y)
-      .some((neighbor) => self.getCell(neighbor.x, neighbor.y).state === state);
+    for (let dY = y - 1; dY <= y + 1; dY += 1) {
+      for (let dX = x - 1; dX <= x + 1; dX += 1) {
+        if (dX === x && dY === y) continue;
+        if (this.isInBounds(dX, dY) && this.getCell(dX, dY).state === state) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   neighborsWithState(x, y, state) {
-    const self = this;
-    return this.neighborList(x, y)
-      .map((neighbor) => self.getCell(neighbor.x, neighbor.y))
-      .filter((cell) => cell.state === state);
+    let count = 0;
+    for (let dY = y - 1; dY <= y + 1; dY += 1) {
+      for (let dX = x - 1; dX <= x + 1; dX += 1) {
+        if (dX === x && dY === y) continue;
+        if (this.isInBounds(dX, dY) && this.getCell(dX, dY).state === state) {
+          count += 1;
+        }
+      }
+    }
+    return count;
   }
 
   static generateCellSpace(width, height) {
