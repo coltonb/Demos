@@ -264,7 +264,7 @@ class MusicBox {
 }
 
 const MEASURES = 1;
-const OCTAVES = 2;
+const OCTAVES = 3;
 const NOTES = [
   'C2',
   'Db2',
