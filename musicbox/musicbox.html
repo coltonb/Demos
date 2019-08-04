@@ -2,63 +2,92 @@
 <html>
   <head>
     <title>Music Box</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1,  maximum-scale=1, user-scalable=0">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1,  maximum-scale=1, user-scalable=0"
+    />
     <style>
-      html, body {
+      html,
+      body {
         height: 100%;
       }
 
       body {
         display: flex;
-        background: #222;
+        background: #111;
         align-items: center;
         justify-content: center;
         box-sizing: border-box;
         margin: 0;
       }
 
-      select, button {
-        -webkit-appearance: none;
-        border: none;
-        background-color: #a0a0a0a0;
-        font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        width: 45px;
-        height: 45px;
-        margin-right: 7px;
-        margin-bottom: 7px;
+      .musicbox-ui-note,
+      .musicbox-ui-control {
         border-radius: 2px;
+        margin: 2px;
       }
 
-      .note-row {
+      .musicbox-ui-control {
+        -webkit-appearance: none;
+        border: none;
+        background-color: #888;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.5em;
+        flex-grow: 1;
+        text-align-last: center;
+        color: white;
+      }
+
+      .musicbox-ui-play-button {
+        background-color: #cd01c4;
+      }
+
+      .musicbox-ui-note-selector {
+        background-color: #01c4cd;
+      }
+
+      #musicbox-ui-container {
+        display: flex;
+        flex-flow: column;
+        width: 95%;
+        max-width: 600px;
+        max-height: 100%;
+      }
+
+      #musicbox-control-container {
+        display: flex;
+        justify-content: center;
+      }
+
+      .musicbox-ui-note-row {
         display: flex;
       }
 
-      .note {
-        transition: all 0.1s;
-        width: 4vw;
-        height: 4vw;
-        max-width: 32px;
-        max-height: 32px;
-        background-color: #4d4d4d;
-        margin-right: 4px;
-        margin-bottom: 4px;
+      .musicbox-ui-note {
+        transition: all 0.1s ease;
+        background-color: #444;
         padding: 0;
-        border-radius: 2px;
+        flex: 1 0 auto;
       }
 
-      .column-on {
-        background-color: #6b6b6b;
-        box-shadow: 0 0 5px #6b6b6b;
+      .musicbox-ui-note:before {
+        content: '';
+        float: left;
+        padding-top: 100%;
       }
 
-      .note-on.column-on {
+      .musicbox-ui-column-on {
+        background-color: #555;
+      }
+
+      .musicbox-ui-note-on.musicbox-ui-column-on {
         z-index: 999;
-        box-shadow: 0 0 128px #ededed;
+        box-shadow: 0 0 128px 4px #eee;
       }
 
-      .note-on {
-        background-color: #ededed;
-        box-shadow: 0 0 5px #ededed;
+      .musicbox-ui-note-on {
+        background-color: #eee;
+        box-shadow: 0 0 5px #eee;
       }
     </style>
   </head>

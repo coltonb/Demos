@@ -1,6 +1,8 @@
 class NoteSelector {
   constructor(parentNode, notes) {
     this.noteSelector = document.createElement('select');
+    this.noteSelector.classList.add('musicbox-ui-control');
+    this.noteSelector.classList.add('musicbox-ui-note-selector');
     notes.map(note => {
       let option = document.createElement('option');
       option.value = note;
@@ -14,7 +16,9 @@ class NoteSelector {
   }
 
   get selectedNote() {
-    return this.noteSelector.options[this.noteSelector.selectedIndex].value;
+    return Tone.Frequency(
+      this.noteSelector.options[this.noteSelector.selectedIndex].value
+    );
   }
 }
 
@@ -24,15 +28,17 @@ class PlayButton {
   }
 
   constructor(parentNode) {
-    this.playButton = document.createElement('button');
-    this.playButton.textContent = this.isPlaying ? 'Stop' : 'Play';
+    this.playButton = document.createElement('div');
+    this.playButton.classList.add('musicbox-ui-control');
+    this.playButton.classList.add('musicbox-ui-play-button');
+    this.playButton.textContent = '▶';
 
     this.playButton.addEventListener('click', () => {
       if (Tone.context.state !== 'running') {
         Tone.context.resume();
       }
       Tone.Transport.toggle();
-      this.playButton.textContent = this.isPlaying ? 'Stop' : 'Play';
+      this.playButton.textContent = this.isPlaying ? '◼' : '▶';
     });
 
     this.playButton.id = 'musicbox-play-button';
@@ -43,7 +49,7 @@ class PlayButton {
 
 class Sequencer {
   get notes() {
-    return this.sequenceContainer.querySelectorAll('.note');
+    return this.sequencerContainer.querySelectorAll('.musicbox-ui-note');
   }
 
   noteAt(x, y) {
@@ -66,11 +72,13 @@ class Sequencer {
 
   highlightColumn(column) {
     for (let y = 0; y < this.octaves * this.notesPerOctave; y += 1) {
-      this.noteAt(this.currentColumn, y).classList.remove('column-on');
+      this.noteAt(this.currentColumn, y).classList.remove(
+        'musicbox-ui-column-on'
+      );
     }
     this.currentColumn = column;
     for (let y = 0; y < this.octaves * this.notesPerOctave; y += 1) {
-      this.noteAt(this.currentColumn, y).classList.add('column-on');
+      this.noteAt(this.currentColumn, y).classList.add('musicbox-ui-column-on');
     }
   }
 
@@ -86,12 +94,12 @@ class Sequencer {
     for (let y = 0; y < this.octaves * this.notesPerOctave; y += 1) {
       const note = this.noteAt(x, y);
       note.setAttribute('data-state', 'off');
-      note.classList.remove('note-on');
+      note.classList.remove('musicbox-ui-note-on');
     }
   }
 
   constructor(parentNode, measures, octaves) {
-    this.sequenceContainer = document.createElement('div');
+    this.sequencerContainer = document.createElement('div');
     this.measures = measures;
     this.octaves = octaves;
     this.notesPerOctave = 5;
@@ -99,66 +107,76 @@ class Sequencer {
     this.currentColumn = 0;
     this.mouseMode = 'none';
 
-    this.sequenceContainer.id = 'musicbox-sequencer';
+    this.sequencerContainer.classList.add('musicbox-ui-sequencer');
 
-    let self = this;
     for (let y = 0; y < this.octaves * this.notesPerOctave; y += 1) {
       let noteRow = document.createElement('div');
-      noteRow.classList.add('note-row');
+      noteRow.classList.add('musicbox-ui-note-row');
       for (let x = 0; x < this.measures * this.notesPerMeasure; x += 1) {
         let note = document.createElement('div');
-        note.classList.add('note');
+        note.classList.add('musicbox-ui-note');
         note.setAttribute('data-state', 'off');
         note.setAttribute('data-col', x);
 
-        const preventDefault = event => {
+        const sequencerInteraction = event => {
           event.preventDefault();
+          if (this.mouseMode === 'none') this.mouseMode = 'on';
         };
 
-        this.sequenceContainer.addEventListener('mousedown', preventDefault);
-        this.sequenceContainer.addEventListener('touchstart', preventDefault);
+        this.sequencerContainer.addEventListener(
+          'mousedown',
+          sequencerInteraction
+        );
+        this.sequencerContainer.addEventListener(
+          'touchstart',
+          sequencerInteraction
+        );
 
         const pressListener = event => {
           if (note.getAttribute('data-state') === 'off') {
-            note.classList.add('note-on');
+            note.classList.add('musicbox-ui-note-on');
             note.setAttribute('data-state', 'on');
-            self.mouseMode = 'on';
+            this.mouseMode = 'on';
           } else {
-            note.classList.remove('note-on');
+            note.classList.remove('musicbox-ui-note-on');
             note.setAttribute('data-state', 'off');
-            self.mouseMode = 'off';
+            this.mouseMode = 'off';
           }
 
-          this.sequenceContainer.dispatchEvent(new Event('change'));
+          this.sequencerContainer.dispatchEvent(new Event('change'));
         };
 
         const releaseListener = event => {
-          self.mouseMode = 'none';
+          this.mouseMode = 'none';
         };
 
         const moveListener = event => {
           if (event.type === 'touchmove') {
-            let newElement = document.elementFromPoint(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
-            if (!newElement.classList.contains('note')) return;
+            let newElement = document.elementFromPoint(
+              event.changedTouches[0].clientX,
+              event.changedTouches[0].clientY
+            );
+            if (!newElement.classList.contains('musicbox-ui-note')) return;
             note = newElement;
           }
+
           if (
-            self.mouseMode === 'none' ||
-            self.mouseMode === note.getAttribute('data-state')
+            this.mouseMode === 'none' ||
+            this.mouseMode === note.getAttribute('data-state')
           )
             return;
 
-          if (self.mouseMode === 'on') {
-            note.classList.add('note-on');
+          if (this.mouseMode === 'on') {
+            note.classList.add('musicbox-ui-note-on');
             note.setAttribute('data-state', 'on');
-            self.mouseMode = 'on';
-          } else if (self.mouseMode === 'off') {
-            note.classList.remove('note-on');
+            this.mouseMode = 'on';
+          } else if (this.mouseMode === 'off') {
+            note.classList.remove('musicbox-ui-note-on');
             note.setAttribute('data-state', 'off');
-            self.mouseMode = 'off';
+            this.mouseMode = 'off';
           }
 
-          this.sequenceContainer.dispatchEvent(new Event('change'));
+          this.sequencerContainer.dispatchEvent(new Event('change'));
         };
 
         document.body.addEventListener('mouseup', releaseListener);
@@ -170,9 +188,14 @@ class Sequencer {
 
         noteRow.appendChild(note);
       }
-      this.sequenceContainer.appendChild(noteRow);
+      this.sequencerContainer.appendChild(noteRow);
     }
-    parentNode.appendChild(this.sequenceContainer);
+    parentNode.appendChild(this.sequencerContainer);
+
+    this.highlightColumn(0);
+    Tone.Transport.on('stop', () => {
+      setTimeout(() => this.highlightColumn(0), 100);
+    });
   }
 }
 
@@ -188,50 +211,31 @@ class MusicBoxUI {
     uiContainer.id = 'musicbox-ui-container';
     controlContainer.id = 'musicbox-control-container';
 
-    controlContainer.appendChild(this.noteSelector.noteSelector);
     controlContainer.appendChild(this.playButton.playButton);
+    controlContainer.appendChild(this.noteSelector.noteSelector);
     uiContainer.appendChild(controlContainer);
 
-    uiContainer.appendChild(this.sequencer.sequenceContainer);
+    uiContainer.appendChild(this.sequencer.sequencerContainer);
     document.body.appendChild(uiContainer);
   }
 }
 
 class MusicBox {
-  static pentatonicScale(baseHertz, octaves) {
-    octaves = typeof octaves === 'undefined' ? 1 : octaves;
-
-    let pentatonicScale = [];
-
-    for (let octave = 1; octave <= octaves; octave += 1) {
-      pentatonicScale = pentatonicScale.concat([
-        baseHertz * octave,
-        ((baseHertz * 9) / 8) * octave,
-        ((baseHertz * 81) / 64) * octave,
-        ((baseHertz * 3) / 2) * octave,
-        ((baseHertz * 27) / 16) * octave
-      ]);
-    }
-
-    return pentatonicScale;
-  }
-
-  static randomPentatonic(baseHertz, octaves) {
-    let notes = MusicBox.pentatonicScale(baseHertz, octaves);
-    return notes[Math.floor(Math.random() * notes.length)];
+  static majorPentatonicScaleFrom(note, octaves) {
+    return Array.from(new Array(octaves).keys()).reduce(
+      (accumulator, octave) => {
+        return accumulator.concat(
+          note.transpose(12 * octave).harmonize([0, 2, 4, 7, 9])
+        );
+      },
+      []
+    );
   }
 
   get sequence() {
-    const baseHertz = Tone.Frequency(this.scaleSelector.selectedNote);
-    const pentatonicScale = MusicBox.pentatonicScale(
-      baseHertz,
-      this.sequencer.octaves
-    );
-
+    const scale = this.scale;
     return this.sequencer.sequence.map(chord =>
-      chord === null
-        ? null
-        : chord.map(note => pentatonicScale[pentatonicScale.length - 1 - note])
+      chord === null ? null : chord.map(note => scale[scale.length - 1 - note])
     );
   }
 
@@ -239,45 +243,56 @@ class MusicBox {
     this.instrument = instrument;
     this.scaleSelector = userInterface.noteSelector;
     this.sequencer = userInterface.sequencer;
-
-    const self = this;
+    this.scale = MusicBox.majorPentatonicScaleFrom(
+      this.scaleSelector.selectedNote,
+      this.sequencer.octaves
+    );
 
     this.toneSequence = new Tone.Sequence(
       function(time, column) {
-        if (self.sequence[column] !== null) {
+        if (this.sequence[column] !== null) {
           instrument.triggerAttackRelease(
-            self.sequence[column],
-            `${self.sequencer.notesPerMeasure}n`,
+            this.sequence[column],
+            `${this.sequencer.notesPerMeasure}n`,
             time,
             Math.random() * 0.5 + 0.5
           );
         }
         Tone.Draw.schedule(() => {
-          self.sequencer.highlightColumn(column);
+          this.sequencer.highlightColumn(column);
         }, time);
-      },
-      Array.from(Array(this.sequencer.notesPerMeasure * this.sequencer.measures).keys()),
+      }.bind(this),
+      Array.from(
+        Array(this.sequencer.notesPerMeasure * this.sequencer.measures).keys()
+      ),
       `${this.sequencer.notesPerMeasure}n`
     );
-    this.toneSequence.start();
+    this.toneSequence.start(0);
+
+    this.scaleSelector.noteSelector.addEventListener('change', () => {
+      this.scale = MusicBox.majorPentatonicScaleFrom(
+        this.scaleSelector.selectedNote,
+        this.sequencer.octaves
+      );
+    });
   }
 }
 
 const MEASURES = 1;
 const OCTAVES = 3;
 const NOTES = [
-  'C2',
-  'Db2',
-  'D2',
-  'E2',
-  'Eb2',
-  'F2',
-  'Gb2',
-  'G2',
-  'Ab2',
-  'A2',
-  'Bb2',
-  'B2'
+  'C3',
+  'Db3',
+  'D3',
+  'E3',
+  'Eb3',
+  'F3',
+  'Gb3',
+  'G3',
+  'Ab3',
+  'A3',
+  'Bb3',
+  'B3'
 ];
 
 const body = document.body;
