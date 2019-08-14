@@ -303,6 +303,7 @@ const userInterfaceElements = {
 };
 
 const instrument = new Tone.PolySynth(OCTAVES * 5).toMaster();
+instrument.volume.value = -6;
 const musicBoxUI = new MusicBoxUI(userInterfaceElements);
 
 new MusicBox(instrument, musicBoxUI);
