@@ -205,18 +205,18 @@ class MusicBoxUI {
     this.noteSelector = options.noteSelector;
     this.playButton = options.playButton;
 
-    let uiContainer = document.createElement('div');
-    let controlContainer = document.createElement('div');
+    this.uiContainer = document.createElement('div');
+    this.controlContainer = document.createElement('div');
 
-    uiContainer.id = 'musicbox-ui-container';
-    controlContainer.id = 'musicbox-control-container';
+    this.uiContainer.id = 'musicbox-ui-container';
+    this.controlContainer.id = 'musicbox-control-container';
 
-    controlContainer.appendChild(this.playButton.playButton);
-    controlContainer.appendChild(this.noteSelector.noteSelector);
-    uiContainer.appendChild(controlContainer);
+    this.controlContainer.appendChild(this.playButton.playButton);
+    this.controlContainer.appendChild(this.noteSelector.noteSelector);
+    this.uiContainer.appendChild(this.controlContainer);
 
-    uiContainer.appendChild(this.sequencer.sequencerContainer);
-    document.body.appendChild(uiContainer);
+    this.uiContainer.appendChild(this.sequencer.sequencerContainer);
+    document.body.appendChild(this.uiContainer);
   }
 }
 
@@ -248,26 +248,26 @@ class MusicBox {
       this.sequencer.octaves
     );
 
+    this.sequenceArray = Array.from(
+      Array(this.sequencer.notesPerMeasure * this.sequencer.measures).keys()
+    );
+
     this.toneSequence = new Tone.Sequence(
       function(time, column) {
         if (this.sequence[column] !== null) {
           instrument.triggerAttackRelease(
             this.sequence[column],
-            `${this.sequencer.notesPerMeasure}n`,
-            time,
-            Math.random() * 0.5 + 0.5
+            `${this.sequencer.notesPerMeasure << 1}n`,
+            time
           );
         }
         Tone.Draw.schedule(() => {
           this.sequencer.highlightColumn(column);
         }, time);
       }.bind(this),
-      Array.from(
-        Array(this.sequencer.notesPerMeasure * this.sequencer.measures).keys()
-      ),
+      this.sequenceArray,
       `${this.sequencer.notesPerMeasure}n`
-    );
-    this.toneSequence.start(0);
+    ).start(0);
 
     this.scaleSelector.noteSelector.addEventListener('change', () => {
       this.scale = MusicBox.majorPentatonicScaleFrom(
@@ -302,8 +302,7 @@ const userInterfaceElements = {
   sequencer: new Sequencer(body, MEASURES, OCTAVES)
 };
 
-const instrument = new Tone.PolySynth(5).toMaster();
-instrument.volume.value = -6;
+const instrument = new Tone.PolySynth(OCTAVES * 5).chain(new Tone.Limiter(-32), Tone.Master);
 const musicBoxUI = new MusicBoxUI(userInterfaceElements);
 
 new MusicBox(instrument, musicBoxUI);
