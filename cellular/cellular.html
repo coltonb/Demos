@@ -19,7 +19,7 @@
     </div>
     <script type="text/javascript" src="js/cellular.js"></script>
     <script type="text/javascript">
-      const canvas = document.querySelector("#canvas");
+      const canvas = document.querySelector('#canvas');
       const cellSpace = new CellSpace(canvas);
 
       let controls = {
@@ -27,18 +27,18 @@
         run: true,
         mouseDown: false,
         mouseState: 1,
-        step: function() {
+        currentSimulation: cellSpace.currentSimulationName,
+        step: () => {
           cellSpace.step();
         },
         fillDensity: 0.1,
-        clear: function() {
+        clear: () => {
           cellSpace.clear();
-          cellSpace.paintCells();
         },
-        randomFill: function() {
+        randomFill: () => {
           cellSpace.randomFill(controls.fillDensity);
         },
-        toggleCell: function(x, y) {
+        toggleCell: (x, y) => {
           if (cellSpace.isInBounds(x, y)) {
             const cell = cellSpace.getCell(x, y);
             if (cell.state === 0) {
@@ -50,52 +50,58 @@
             }
           }
         },
-        setCell: function(x, y, state) {
+        setCell: (x, y, state) => {
           if (cellSpace.isInBounds(x, y)) {
             cellSpace.getCell(x, y).forceState(state);
           }
+        },
+        setSimulation: name => {
+          cellSpace.setCurrentSimulation(name);
         }
       };
 
-      canvas.addEventListener("mousedown", e => {
+      canvas.addEventListener('mousedown', e => {
         controls.mouseDown = true;
         controls.mouseState = controls.toggleCell(e.offsetX, e.offsetY);
       });
 
-      window.addEventListener("mouseup", () => (controls.mouseDown = false));
+      window.addEventListener('mouseup', () => (controls.mouseDown = false));
 
-      canvas.addEventListener("mousemove", e => {
+      canvas.addEventListener('mousemove', e => {
         if (controls.mouseDown) {
           controls.setCell(e.offsetX, e.offsetY, controls.mouseState);
         }
       });
 
-      let gui = new dat.GUI();
+      const gui = new dat.GUI();
 
-      let viewFolder = gui.addFolder("View");
-      let scaleController = viewFolder.add(controls, "scale", 1, 3);
-      scaleController.name("Scale");
+      const viewFolder = gui.addFolder('View');
+      const scaleController = viewFolder.add(controls, 'scale', 1, 3);
+      scaleController.name('Scale');
       scaleController.onChange(() => cellSpace.rescale(controls.scale));
 
-      let simulationFolder = gui.addFolder("Simulation");
+      const simulationFolder = gui.addFolder('Simulation');
       simulationFolder
-        .add(cellSpace, "mode", MODES)
-        .name("Mode")
-        .onChange(() => controls.randomFill());
-      simulationFolder.add(controls, "run").name("Running");
-      simulationFolder.add(controls, "step").name("Step");
+        .add(controls, 'currentSimulation', cellSpace.simulationNames)
+        .name('Sim Mode')
+        .onChange(name => {
+          controls.setSimulation(name);
+          controls.randomFill();
+        });
+      simulationFolder.add(controls, 'run').name('Running');
+      simulationFolder.add(controls, 'step').name('Step');
 
-      let fillFolder = gui.addFolder("Fill");
-      fillFolder.add(controls, "fillDensity", 0.01, 1.0).name("Density");
-      fillFolder.add(controls, "randomFill").name("Fill");
-      fillFolder.add(controls, "clear").name("Clear");
+      const fillFolder = gui.addFolder('Fill');
+      fillFolder.add(controls, 'fillDensity', 0.01, 1.0).name('Density');
+      fillFolder.add(controls, 'randomFill').name('Fill');
+      fillFolder.add(controls, 'clear').name('Clear');
 
       simulationFolder.open();
       viewFolder.open();
 
       cellSpace.randomFill();
 
-      let stats = new Stats();
+      const stats = new Stats();
       stats.showPanel(0);
       document.body.appendChild(stats.dom);
 
