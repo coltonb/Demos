@@ -19,10 +19,6 @@ class Cell {
     this.needsPainting = false;
   }
 
-  hasUnchangedState(state) {
-    return this.state === state && this.nextState === state;
-  }
-
   commitStateChange() {
     this.needsPainting = this.needsPainting || this.state !== this.nextState;
     this.state = this.nextState;
@@ -30,10 +26,12 @@ class Cell {
 }
 
 class Simulation {
-  constructor(name, paintLogic, updateLogic) {
+  constructor(name, paintLogic, updateLogic, properties = {}) {
     this.name = name;
     this.paintLogic = paintLogic;
     this.updateLogic = updateLogic;
+    this.fillLogic = properties.fillLogic;
+    this.activeState = properties.activeState;
   }
 }
 
@@ -172,11 +170,91 @@ const defaultSimulationsList = [
         }
       }
     }
+  ),
+
+  new Simulation(
+    'Water',
+    cell => {
+      cell.paint(
+        cell.state.wall ? 100 : 0,
+        cell.state.wall ? 100 : 0,
+        cell.state.water ? 255 : 0
+      );
+    },
+    (cellSpace, x, y) => {
+      const cell = cellSpace.getCell(x, y);
+      if (cell.state.water) {
+        if (cellSpace.isInBounds(x, y + 1)) {
+          const neighbor = cellSpace.getCell(x, y + 1);
+          if (neighbor.state.empty && neighbor.nextState.empty) {
+            cell.state.flowSteps = Math.max(cell.state.flowSteps - 10, 0);
+            neighbor.nextState = cell.state;
+            cell.nextState = neighbor.state;
+            return;
+          }
+        }
+
+        const newX = x + cell.state.flowDirection;
+
+        if (cellSpace.isInBounds(newX, y)) {
+          const neighbor = cellSpace.getCell(newX, y);
+          if (neighbor.state.empty && neighbor.nextState.empty) {
+            cell.state.currentFlowStep += 1;
+            if (cell.state.currentFlowStep > cell.state.flowSteps) {
+              cell.state.flowSteps = Math.min(cell.state.flowSteps + 1, 50);
+              cell.state.currentFlowStep = 0;
+              neighbor.nextState = cell.state;
+              cell.nextState = neighbor.state;
+            }
+            return;
+          }
+        }
+
+        cell.state.flowDirection = -cell.state.flowDirection;
+      }
+    },
+    {
+      fillLogic: (cellSpace, density) => {
+        for (let y = 0; y < cellSpace.height; y += 1) {
+          for (let x = 0; x < cellSpace.width; x += 1) {
+            const cell = cellSpace.getCell(x, y);
+            if (Math.random() >= 1 - density) {
+              if (Math.random() > 0.8) {
+                cell.forceState({
+                  empty: false,
+                  water: true,
+                  currentFlowStep: 0,
+                  flowSteps: 0,
+                  flowDirection: Math.random() >= 0.5 ? -1 : 1
+                });
+              } else {
+                cell.forceState({ empty: false, wall: true });
+              }
+            } else {
+              cell.forceState({ empty: true });
+            }
+          }
+        }
+      },
+      activeState: () => {
+        return {
+          empty: false,
+          water: true,
+          currentFlowStep: 0,
+          flowSteps: 0,
+          flowDirection: Math.random() >= 0.5 ? -1 : 1
+        };
+      }
+    }
   )
 ];
 
 class CellSpace {
-  constructor(canvas, simulations = defaultSimulationsList, currentSimulation = 0) {
+  constructor(
+    canvas,
+    simulations = defaultSimulationsList,
+    currentSimulation = defaultSimulationsList[0]
+  ) {
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -211,15 +289,15 @@ class CellSpace {
   }
 
   get currentSimulationName() {
-    return this.simulations[this.currentSimulation].name;
+    return this.currentSimulation.name;
   }
 
   setCurrentSimulation(simulationName) {
     this.simulations.forEach((simulation, index) => {
       if (simulation.name === simulationName) {
-        this.currentSimulation = index;
+        this.currentSimulation = simulation;
       }
-    })
+    });
   }
 
   rescale(scale) {
@@ -235,15 +313,19 @@ class CellSpace {
     }
   }
 
-  randomFill(density = 0.1) {
-    for (let y = 0; y < this.height; y += 1) {
-      for (let x = 0; x < this.width; x += 1) {
-        const randomValue = Math.random();
-        const cell = this.getCell(x, y);
-        if (randomValue >= 1 - density) {
-          cell.forceState(1);
-        } else {
-          cell.forceState(0);
+  fill(density = 0.1) {
+    if (this.currentSimulation.fillLogic !== undefined) {
+      this.currentSimulation.fillLogic(cellSpace, density);
+    } else {
+      for (let y = 0; y < this.height; y += 1) {
+        for (let x = 0; x < this.width; x += 1) {
+          const randomValue = Math.random();
+          const cell = this.getCell(x, y);
+          if (randomValue >= 1 - density) {
+            cell.forceState(1);
+          } else {
+            cell.forceState(0);
+          }
         }
       }
     }
@@ -278,7 +360,7 @@ class CellSpace {
   updateCell(x, y) {
     this.validateIsInBounds(x, y);
 
-    this.simulations[this.currentSimulation].updateLogic(this, x, y);
+    this.currentSimulation.updateLogic(this, x, y);
   }
 
   paintCell(x, y) {
@@ -287,7 +369,7 @@ class CellSpace {
     const cell = this.getCell(x, y);
     if (!cell.needsPainting) return;
 
-    this.simulations[this.currentSimulation].paintLogic(cell);
+    this.currentSimulation.paintLogic(cell);
   }
 
   hasNeighborWithState(x, y, state) {
