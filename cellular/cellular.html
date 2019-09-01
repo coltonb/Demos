@@ -18,17 +18,36 @@
       <canvas id="canvas" width="250" height="250"></canvas>
     </div>
     <script type="text/javascript" src="js/cellular.js"></script>
+    <script type="text/javascript" src="js/simulations/conway.js"></script>
+    <script type="text/javascript" src="js/simulations/move.js"></script>
+    <script type="text/javascript" src="js/simulations/freeze.js"></script>
+    <script type="text/javascript" src="js/simulations/seeds.js"></script>
+    <script type="text/javascript" src="js/simulations/mirage.js"></script>
+    <script
+      type="text/javascript"
+      src="js/simulations/brians_brain.js"
+    ></script>
+    <script type="text/javascript" src="js/simulations/water.js"></script>
     <script type="text/javascript">
       const canvas = document.querySelector('#canvas');
-      const cellSpace = new CellSpace(canvas);
+      const simulations = [
+        conwaySimulation(),
+        moveSimulation(),
+        freezeSimulation(),
+        seedsSimulation(),
+        briansBrainSimulation(),
+        mirageSimulation(),
+        waterSimulation()
+      ];
+      const cellSpace = new CellSpace(canvas, simulations, simulations[6]);
 
       let controls = {
         run: true,
         mouseDown: false,
         mouseState: 1,
         currentSimulationIndex: cellSpace.currentSimulationName,
-        interactionActive: true,
-        interactionSize: 2,
+        Cell: null,
+        'Brush Size': 2,
         step: () => {
           cellSpace.step();
         },
@@ -40,33 +59,37 @@
           cellSpace.fill(controls.fillDensity);
         },
         toggleCell: (x, y) => {
-          for (let newY = y - controls.interactionSize; newY < y + controls.interactionSize; newY += 1) {
-            for (let newX = x - controls.interactionSize; newX < x + controls.interactionSize; newX += 1) {
-              const cell = cellSpace.getCell(newX, newY);
-              if (controls.interactionActive) {
-                if (cellSpace.currentSimulation.activeState !== undefined) {
-                  cell.forceState(cellSpace.currentSimulation.activeState());
-                } else {
-                  cell.forceState(1);
-                }
-              } else {
-                if (cellSpace.currentSimulation.inactiveState !== undefined) {
-                  cell.forceState(cellSpace.currentSimulation.inactiveState());
-                } else {
-                  cell.forceState(0);
-                }
+          for (
+            let newY = y - controls['Brush Size'];
+            newY < y + controls['Brush Size'];
+            newY += 1
+          ) {
+            for (
+              let newX = x - controls['Brush Size'];
+              newX < x + controls['Brush Size'];
+              newX += 1
+            ) {
+              if (cellSpace.isInBounds(newX, newY)) {
+                cellSpace
+                  .getCell(newX, newY)
+                  .forceState(
+                    JSON.parse(
+                      JSON.stringify(
+                        cellSpace.currentSimulation.states[controls.Cell]
+                      )
+                    )
+                  );
               }
             }
           }
         },
-        setCell: (x, y, state) => {
-          if (cellSpace.isInBounds(x, y)) {
-            cellSpace.getCell(x, y).forceState(state);
-          }
-        },
         setSimulation: name => {
           cellSpace.setCurrentSimulation(name);
-        },
+          controls.fill();
+          const states = Object.keys(cellSpace.currentSimulation.states);
+          controls.Cell = states[0];
+          controls.stateSelection = controls.stateSelection.options(states);
+        }
       };
 
       canvas.addEventListener('mousedown', e => {
@@ -108,7 +131,6 @@
         .name('Mode')
         .onChange(name => {
           controls.setSimulation(name);
-          controls.fill();
         });
       simulationFolder.add(controls, 'run').name('Running');
       simulationFolder.add(controls, 'step').name('Step');
@@ -119,14 +141,15 @@
       fillFolder.add(controls, 'clear').name('Clear');
 
       const interactionFolder = gui.addFolder('Interaction');
-      interactionFolder.add(controls, 'interactionActive').name('Mode')
-      interactionFolder.add(controls, 'interactionSize', 2, 6, 1).name('Brush Size')
+      controls.stateSelection = interactionFolder.add(controls, 'Cell', []);
+      interactionFolder
+        .add(controls, 'Brush Size', 2, 6, 1)
 
       simulationFolder.open();
       fillFolder.open();
       interactionFolder.open();
 
-      cellSpace.fill();
+      controls.setSimulation('Water');
 
       const stats = new Stats();
       stats.showPanel(0);

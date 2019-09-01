@@ -26,241 +26,15 @@ class Cell {
 }
 
 class Simulation {
-  constructor(name, paintLogic, updateLogic, properties = {}) {
+  constructor(name, states = {}, logic = {}) {
     this.name = name;
-    this.paintLogic = paintLogic;
-    this.updateLogic = updateLogic;
-    this.fillLogic = properties.fillLogic;
-    this.activeState = properties.activeState;
-    this.inactiveState = properties.inactiveState;
+    this.states = states;
+    this.logic = logic;
   }
 }
 
-const defaultSimulationsList = [
-  new Simulation(
-    'Conway',
-    cell => {
-      cell.paint(0, cell.state === 1 ? 255 : 0, 0);
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      const activeNeighborCount = cellSpace.neighborsWithState(x, y, 1);
-
-      if (cell.state === 1) {
-        if (activeNeighborCount < 2 || activeNeighborCount > 3) {
-          cell.nextState = 0;
-        }
-      } else if (activeNeighborCount === 3) {
-        cell.nextState = 1;
-      }
-    }
-  ),
-
-  new Simulation(
-    'Move',
-    cell => {
-      cell.paint(0, cell.state === 1 ? 255 : 0, 0);
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      if (cell.state !== 1) return;
-
-      const newX = x + Math.floor(Math.random() * 3) - 1;
-      const newY = y + Math.floor(Math.random() * 3) - 1;
-
-      if (cellSpace.isInBounds(newX, newY)) {
-        const neighbor = cellSpace.getCell(newX, newY);
-        if (neighbor.state !== 1 && neighbor.nextState !== 1) {
-          neighbor.nextState = 1;
-          cell.nextState = 0;
-        }
-      }
-    }
-  ),
-
-  new Simulation(
-    'Freeze',
-    cell => {
-      cell.paint(0, cell.state === 1 ? 255 : 0, cell.state === 2 ? 255 : 0);
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      if (cell.state !== 1) return;
-
-      if (cellSpace.hasNeighborWithState(x, y, 2)) {
-        cell.nextState = 2;
-      } else {
-        const newX = x + Math.floor(Math.random() * 3) - 1;
-        const newY = y + Math.floor(Math.random() * 3) - 1;
-
-        if (cellSpace.isInBounds(newX, newY)) {
-          const neighbor = cellSpace.getCell(newX, newY);
-          if (neighbor.state === 0 && neighbor.nextState === 0) {
-            neighbor.nextState = 1;
-            cell.nextState = 0;
-          }
-
-          if (
-            cellSpace.isAtEdge(newX, newY) ||
-            cellSpace.hasNeighborWithState(newX, newY, 2)
-          ) {
-            neighbor.nextState = 2;
-          }
-        }
-      }
-    }
-  ),
-
-  new Simulation(
-    'Seeds',
-    cell => {
-      cell.paint(0, cell.state === 1 ? 255 : 0, 0);
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      const activeNeighborCount = cellSpace.neighborsWithState(x, y, 1);
-
-      if (cell.state === 1) {
-        cell.nextState = 0;
-      } else if (activeNeighborCount === 2) {
-        cell.nextState = 1;
-      }
-    }
-  ),
-
-  new Simulation(
-    "Brain's Brain",
-    cell => {
-      cell.paint(
-        cell.state === 1 ? 255 : 0,
-        cell.state === 1 ? 255 : 0,
-        cell.state > 0 ? 255 : 0
-      );
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      const activeNeighborCount = cellSpace.neighborsWithState(x, y, 1);
-
-      if (cell.state === 0) {
-        if (activeNeighborCount === 2) {
-          cell.nextState = 1;
-        }
-      } else {
-        cell.nextState = (cell.state + 1) % 3;
-      }
-    }
-  ),
-
-  new Simulation(
-    'Mirage',
-    cell => {
-      cell.paint(cell.state === 1 ? 255 : 0, cell.state === 1 ? 255 : 0, 0);
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      const newX = x + Math.floor(Math.random() * 3) - 1;
-      const newY = y + 1;
-
-      if (cellSpace.isInBounds(newX, newY)) {
-        const neighbor = cellSpace.getCell(newX, newY);
-
-        if (neighbor.state === 1) {
-          cell.nextState = 1;
-        } else {
-          cell.nextState = 0;
-        }
-      }
-    }
-  ),
-
-  new Simulation(
-    'Water',
-    cell => {
-      cell.paint(
-        cell.state.wall ? 100 : 0,
-        cell.state.wall ? 100 : 0,
-        cell.state.water ? 255 : 0
-      );
-    },
-    (cellSpace, x, y) => {
-      const cell = cellSpace.getCell(x, y);
-      if (cell.state.water) {
-        if (cellSpace.isInBounds(x, y + 1)) {
-          const neighbor = cellSpace.getCell(x, y + 1);
-          if (neighbor.state.empty && neighbor.nextState.empty) {
-            cell.state.flowSteps = Math.max(cell.state.flowSteps - 10, 0);
-            neighbor.nextState = cell.state;
-            cell.nextState = neighbor.state;
-            return;
-          }
-        }
-
-        const newX = x + cell.state.flowDirection;
-
-        if (cellSpace.isInBounds(newX, y)) {
-          const neighbor = cellSpace.getCell(newX, y);
-          if (neighbor.state.empty && neighbor.nextState.empty) {
-            cell.state.currentFlowStep += 1;
-            if (cell.state.currentFlowStep > cell.state.flowSteps) {
-              cell.state.flowSteps = Math.min(cell.state.flowSteps + 1, 50);
-              cell.state.currentFlowStep = 0;
-              neighbor.nextState = cell.state;
-              cell.nextState = neighbor.state;
-            }
-            return;
-          }
-        }
-
-        cell.state.flowDirection = -cell.state.flowDirection;
-      }
-    },
-    {
-      fillLogic: (cellSpace, density) => {
-        for (let y = 0; y < cellSpace.height; y += 1) {
-          for (let x = 0; x < cellSpace.width; x += 1) {
-            const cell = cellSpace.getCell(x, y);
-            if (Math.random() >= 1 - density) {
-              if (Math.random() > 0.8) {
-                cell.forceState({
-                  empty: false,
-                  water: true,
-                  currentFlowStep: 0,
-                  flowSteps: 0,
-                  flowDirection: Math.random() >= 0.5 ? -1 : 1
-                });
-              } else {
-                cell.forceState({ empty: false, wall: true });
-              }
-            } else {
-              cell.forceState({ empty: true });
-            }
-          }
-        }
-      },
-      activeState: () => {
-        return {
-          empty: false,
-          water: true,
-          currentFlowStep: 0,
-          flowSteps: 0,
-          flowDirection: Math.random() >= 0.5 ? -1 : 1
-        };
-      },
-      inactiveState: () => {
-        return {
-          empty: true
-        };
-      }
-    }
-  )
-];
-
 class CellSpace {
-  constructor(
-    canvas,
-    simulations = defaultSimulationsList,
-    currentSimulation = defaultSimulationsList[0]
-  ) {
+  constructor(canvas, simulations = [], currentSimulation) {
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -311,17 +85,21 @@ class CellSpace {
   }
 
   clear() {
-    for (let y = 0; y < this.height; y += 1) {
-      for (let x = 0; x < this.width; x += 1) {
-        const cell = this.getCell(x, y);
-        cell.forceState(0);
+    if (this.currentSimulation.logic.clear !== undefined) {
+      this.currentSimulation.logic.clear(cellSpace);
+    } else {
+      for (let y = 0; y < this.height; y += 1) {
+        for (let x = 0; x < this.width; x += 1) {
+          const cell = this.getCell(x, y);
+          cell.forceState(0);
+        }
       }
     }
   }
 
   fill(density = 0.1) {
-    if (this.currentSimulation.fillLogic !== undefined) {
-      this.currentSimulation.fillLogic(cellSpace, density);
+    if (this.currentSimulation.logic.fill !== undefined) {
+      this.currentSimulation.logic.fill(cellSpace, density);
     } else {
       for (let y = 0; y < this.height; y += 1) {
         for (let x = 0; x < this.width; x += 1) {
@@ -366,7 +144,7 @@ class CellSpace {
   updateCell(x, y) {
     this.validateIsInBounds(x, y);
 
-    this.currentSimulation.updateLogic(this, x, y);
+    this.currentSimulation.logic.update(this, x, y);
   }
 
   paintCell(x, y) {
@@ -375,7 +153,7 @@ class CellSpace {
     const cell = this.getCell(x, y);
     if (!cell.needsPainting) return;
 
-    this.currentSimulation.paintLogic(cell);
+    this.currentSimulation.logic.paint(cell);
   }
 
   hasNeighborWithState(x, y, state) {
