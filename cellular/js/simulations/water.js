@@ -24,6 +24,7 @@ const waterSimulation = () => {
     },
     update: (cellSpace, x, y) => {
       const cell = cellSpace.getCell(x, y);
+
       if (cell.state.water) {
         if (cellSpace.isInBounds(x, y + 1)) {
           const neighbor = cellSpace.getCell(x, y + 1);
@@ -32,6 +33,9 @@ const waterSimulation = () => {
             neighbor.nextState = cell.state;
             cell.nextState = neighbor.state;
             return;
+          }
+          if (neighbor.state.water && neighbor.nextState.water) {
+            neighbor.state.flowSteps = Math.max(neighbor.state.flowSteps - 10, 0);
           }
         }
 
@@ -42,12 +46,16 @@ const waterSimulation = () => {
           if (neighbor.state.empty && neighbor.nextState.empty) {
             cell.state.currentFlowStep += 1;
             if (cell.state.currentFlowStep > cell.state.flowSteps) {
-              cell.state.flowSteps = Math.min(cell.state.flowSteps + 1, 50);
+              cell.state.flowSteps += 1
               cell.state.currentFlowStep = 0;
               neighbor.nextState = cell.state;
               cell.nextState = neighbor.state;
             }
             return;
+          }
+          if (neighbor.state.water && neighbor.nextState.water) {
+            cell.state.flowSteps += 1;
+            neighbor.state.flowSteps = Math.max(neighbor.state.flowSteps - 1, 0);
           }
         }
 

@@ -80,10 +80,6 @@ class CellSpace {
     });
   }
 
-  rescale(scale) {
-    this.canvas.style.transform = `scale(${scale})`;
-  }
-
   clear() {
     if (this.currentSimulation.logic.clear !== undefined) {
       this.currentSimulation.logic.clear(cellSpace);
