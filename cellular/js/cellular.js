@@ -32,6 +32,7 @@ class Simulation {
     this.updateLogic = updateLogic;
     this.fillLogic = properties.fillLogic;
     this.activeState = properties.activeState;
+    this.inactiveState = properties.inactiveState;
   }
 }
 
@@ -243,6 +244,11 @@ const defaultSimulationsList = [
           currentFlowStep: 0,
           flowSteps: 0,
           flowDirection: Math.random() >= 0.5 ? -1 : 1
+        };
+      },
+      inactiveState: () => {
+        return {
+          empty: true
         };
       }
     }

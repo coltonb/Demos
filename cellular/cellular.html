@@ -27,6 +27,8 @@
         mouseDown: false,
         mouseState: 1,
         currentSimulationIndex: cellSpace.currentSimulationName,
+        interactionActive: true,
+        interactionSize: 2,
         step: () => {
           cellSpace.step();
         },
@@ -38,13 +40,21 @@
           cellSpace.fill(controls.fillDensity);
         },
         toggleCell: (x, y) => {
-          for (let newY = y - 2; newY < y + 2; newY += 1) {
-            for (let newX = x - 2; newX < x + 2; newX += 1) {
+          for (let newY = y - controls.interactionSize; newY < y + controls.interactionSize; newY += 1) {
+            for (let newX = x - controls.interactionSize; newX < x + controls.interactionSize; newX += 1) {
               const cell = cellSpace.getCell(newX, newY);
-              if (cellSpace.currentSimulation.activeState !== undefined) {
-                cell.forceState(cellSpace.currentSimulation.activeState());
+              if (controls.interactionActive) {
+                if (cellSpace.currentSimulation.activeState !== undefined) {
+                  cell.forceState(cellSpace.currentSimulation.activeState());
+                } else {
+                  cell.forceState(1);
+                }
               } else {
-                cell.forceState(1);
+                if (cellSpace.currentSimulation.inactiveState !== undefined) {
+                  cell.forceState(cellSpace.currentSimulation.inactiveState());
+                } else {
+                  cell.forceState(0);
+                }
               }
             }
           }
@@ -56,7 +66,7 @@
         },
         setSimulation: name => {
           cellSpace.setCurrentSimulation(name);
-        }
+        },
       };
 
       canvas.addEventListener('mousedown', e => {
@@ -95,7 +105,7 @@
       const simulationFolder = gui.addFolder('Simulation');
       simulationFolder
         .add(controls, 'currentSimulationIndex', cellSpace.simulationNames)
-        .name('Sim Mode')
+        .name('Mode')
         .onChange(name => {
           controls.setSimulation(name);
           controls.fill();
@@ -108,8 +118,13 @@
       fillFolder.add(controls, 'fill').name('Fill');
       fillFolder.add(controls, 'clear').name('Clear');
 
+      const interactionFolder = gui.addFolder('Interaction');
+      interactionFolder.add(controls, 'interactionActive').name('Mode')
+      interactionFolder.add(controls, 'interactionSize', 2, 6, 1).name('Brush Size')
+
       simulationFolder.open();
       fillFolder.open();
+      interactionFolder.open();
 
       cellSpace.fill();
 
