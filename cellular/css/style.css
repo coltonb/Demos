@@ -2,7 +2,7 @@ body {
   background-color: #2b2b2b;
 }
 
-#canvas {
+#container canvas {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.45);
   image-rendering: pixelated;
   width: 95vw;

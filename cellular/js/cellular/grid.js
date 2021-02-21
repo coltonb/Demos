@@ -1,49 +1,15 @@
-class Cell {
-  constructor(state, color = { r: 0, g: 0, b: 0 }) {
-    this.color = color;
-    this.state = state;
-    this.nextState = state;
-    this.needsPainting = false;
-  }
+import { Cell } from "./cell.js";
 
-  forceState(state) {
-    this.state = state;
-    this.nextState = state;
-    this.needsPainting = true;
-  }
-
-  paint(r, g, b) {
-    this.color.r = r;
-    this.color.g = g;
-    this.color.b = b;
-    this.needsPainting = false;
-  }
-
-  commitStateChange() {
-    this.needsPainting = this.needsPainting || this.state !== this.nextState;
-    this.state = this.nextState;
-  }
-}
-
-class Simulation {
-  constructor(name, states = {}, logic = {}) {
-    this.name = name;
-    this.states = states;
-    this.logic = logic;
-  }
-}
-
-class CellSpace {
-  constructor(canvas, simulations = [], currentSimulation) {
+class Grid {
+  constructor(canvas, simulation) {
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
-    this.context = canvas.getContext('2d');
+    this.context = canvas.getContext("2d");
     this.imageData = this.context.createImageData(this.width, this.height);
-    this.cellSpace = CellSpace.generateCellSpace(this.width, this.height);
+    this.grid = Grid.generateCellSpace(this.width, this.height);
     this.iteration = 0;
-    this.simulations = simulations;
-    this.currentSimulation = currentSimulation;
+    this.simulation = simulation;
   }
 
   static randomColor() {
@@ -51,51 +17,16 @@ class CellSpace {
   }
 
   static get outOfBoundsError() {
-    return new Error('Coordinates are out of bounds');
-  }
-
-  static get activeError() {
-    return new Error(
-      'There is already an active cell at the given coordinates'
-    );
-  }
-
-  static get notActiveError() {
-    return new Error('There is no active cell at the given coordinates');
-  }
-
-  get simulationNames() {
-    return this.simulations.map(simulation => simulation.name);
-  }
-
-  get currentSimulationName() {
-    return this.currentSimulation.name;
-  }
-
-  setCurrentSimulation(simulationName) {
-    this.simulations.forEach((simulation, index) => {
-      if (simulation.name === simulationName) {
-        this.currentSimulation = simulation;
-      }
-    });
+    return new Error("Coordinates are out of bounds");
   }
 
   clear() {
-    if (this.currentSimulation.logic.clear !== undefined) {
-      this.currentSimulation.logic.clear(cellSpace);
-    } else {
-      for (let y = 0; y < this.height; y += 1) {
-        for (let x = 0; x < this.width; x += 1) {
-          const cell = this.getCell(x, y);
-          cell.forceState(0);
-        }
-      }
-    }
+    this.simulation.logic.clear(this);
   }
 
   fill(density = 0.1) {
-    if (this.currentSimulation.logic.fill !== undefined) {
-      this.currentSimulation.logic.fill(cellSpace, density);
+    if (this.simulation.logic.fill !== undefined) {
+      this.simulation.logic.fill(this, density);
     } else {
       for (let y = 0; y < this.height; y += 1) {
         for (let x = 0; x < this.width; x += 1) {
@@ -112,44 +43,42 @@ class CellSpace {
   }
 
   isInBounds(x, y) {
-    return x >= 0 && x < this.width && (y >= 0 && y < this.height);
+    return x >= 0 && x < this.width && y >= 0 && y < this.height;
   }
 
   isAtEdge(x, y) {
-    return (
-      x === 0 || x === this.width - 1 || (y === 0 || y === this.height - 1)
-    );
+    return x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1;
   }
 
   validateIsInBounds(x, y) {
-    if (!this.isInBounds(x, y)) throw CellSpace.outOfBoundsError;
+    if (!this.isInBounds(x, y)) throw new CoordinatesOutOfBoundError();
   }
 
   getCell(x, y) {
     this.validateIsInBounds(x, y);
 
-    return this.cellSpace[y][x];
+    return this.grid[y][x];
   }
 
   setCell(x, y, cell) {
     this.validateIsInBounds(x, y);
 
-    this.cellSpace[y][x] = cell;
+    this.grid[y][x] = cell;
   }
 
   updateCell(x, y) {
     this.validateIsInBounds(x, y);
 
-    this.currentSimulation.logic.update(this, x, y);
+    this.simulation.logic.update(this, x, y);
   }
 
-  paintCell(x, y) {
+  drawCell(x, y) {
     this.validateIsInBounds(x, y);
 
     const cell = this.getCell(x, y);
-    if (!cell.needsPainting) return;
+    if (!cell.needsDraw) return;
 
-    this.currentSimulation.logic.paint(cell);
+    this.simulation.logic.draw(cell);
   }
 
   hasNeighborWithState(x, y, state) {
@@ -207,10 +136,10 @@ class CellSpace {
     }
   }
 
-  paintCells() {
+  drawCells() {
     for (let y = 0; y < this.height; y += 1) {
       for (let x = 0; x < this.width; x += 1) {
-        this.paintCell(x, y);
+        this.drawCell(x, y);
       }
     }
   }
@@ -238,8 +167,10 @@ class CellSpace {
   }
 
   draw() {
-    this.paintCells();
+    this.drawCells();
     this.updateImageData();
     this.drawImageData();
   }
 }
+
+export { Grid };
