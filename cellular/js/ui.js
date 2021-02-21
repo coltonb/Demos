@@ -10,16 +10,14 @@ const simulationMap = Object.values(simulations).reduce((obj, simulation) => {
   return { ...obj, [simulation.name]: simulation };
 }, {});
 const selectedSimulation = Object.keys(simulationMap)[0];
-
 const grid = new Grid(canvas, simulationMap[selectedSimulation]);
 
 let controls = {
   mouseDown: false,
-  mouseState: 1,
   selectedSimulation: selectedSimulation,
-  cell: null,
-  frameLimit: 144,
-  "Brush Size": 2,
+  Cell: null,
+  "FPS Limit": 60,
+  "Brush Size": 1,
   step: () => {
     grid.step();
   },
@@ -30,23 +28,16 @@ let controls = {
   fill: () => {
     grid.fill(controls.fillDensity);
   },
-  toggleCell: (centerX, centerY) => {
-    for (
-      let y = centerY - controls["Brush Size"];
-      y < centerY + controls["Brush Size"];
-      y += 1
-    ) {
-      for (
-        let x = centerX - controls["Brush Size"];
-        x < centerX + controls["Brush Size"];
-        x += 1
-      ) {
+  toggleCell: (startX, startY) => {
+    const size = controls["Brush Size"] - 1;
+
+    for (let y = startY; y <= startY + size; y += 1) {
+      for (let x = startX; x <= startX + size; x += 1) {
         if (grid.isInBounds(x, y)) {
-          grid
-            .getCell(x, y)
-            .forceState(
-              JSON.parse(JSON.stringify(grid.simulation.states[controls.cell]))
-            );
+          const state = JSON.parse(
+            JSON.stringify(grid.simulation.states[controls.Cell])
+          );
+          grid.getCell(x, y).forceState(state);
         }
       }
     }
@@ -58,7 +49,7 @@ let controls = {
     controls.fill();
 
     const states = Object.keys(simulation.states);
-    controls.cell = states[0];
+    controls.Cell = states[0];
     controls.stateSelection = controls.stateSelection.options(states);
   },
 };
@@ -74,7 +65,7 @@ canvas.addEventListener("mousedown", (e) => {
     canvas.getAttribute("height") *
       ((e.clientY - canvasBoundingRect.y) / canvasBoundingRect.height)
   );
-  controls.mouseState = controls.toggleCell(x, y);
+  controls.toggleCell(x, y);
 });
 
 window.addEventListener("mouseup", () => (controls.mouseDown = false));
@@ -90,7 +81,7 @@ canvas.addEventListener("mousemove", (e) => {
       canvas.getAttribute("height") *
         ((e.clientY - canvasBoundingRect.y) / canvasBoundingRect.height)
     );
-    controls.mouseState = controls.toggleCell(x, y);
+    controls.toggleCell(x, y);
   }
 });
 
@@ -103,7 +94,7 @@ simulationFolder
   .onChange((name) => {
     controls.setSimulation(name);
   });
-simulationFolder.add(controls, "frameLimit", 0, 144).name("FPS Limit");
+simulationFolder.add(controls, "FPS Limit", 0, 144);
 simulationFolder.add(controls, "step").name("Step");
 
 const fillFolder = gui.addFolder("Fill");
@@ -112,10 +103,8 @@ fillFolder.add(controls, "fill").name("Fill");
 fillFolder.add(controls, "clear").name("Clear");
 
 const interactionFolder = gui.addFolder("Interaction");
-controls.stateSelection = interactionFolder
-  .add(controls, "cell", [])
-  .name("Cell");
-interactionFolder.add(controls, "Brush Size", 2, 6, 1);
+controls.stateSelection = interactionFolder.add(controls, "Cell", []);
+interactionFolder.add(controls, "Brush Size", 1, 10, 1);
 
 simulationFolder.open();
 fillFolder.open();
@@ -131,11 +120,16 @@ let lastUpdate = Date.now();
 
 function updateLoop() {
   stats.begin();
-  if (Date.now() - lastUpdate > (1 / controls.frameLimit) * 1000) {
+
+  let deltatime = Date.now() - lastUpdate;
+  const frameDuration = (1 / controls["FPS Limit"]) * 1000;
+  while (deltatime > frameDuration) {
     lastUpdate = Date.now();
+    deltatime -= frameDuration;
     grid.step();
   }
   grid.draw();
+
   stats.end();
   requestAnimationFrame(updateLoop);
 }

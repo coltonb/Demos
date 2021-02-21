@@ -24,22 +24,8 @@ class Grid {
     this.simulation.logic.clear(this);
   }
 
-  fill(density = 0.1) {
-    if (this.simulation.logic.fill !== undefined) {
-      this.simulation.logic.fill(this, density);
-    } else {
-      for (let y = 0; y < this.height; y += 1) {
-        for (let x = 0; x < this.width; x += 1) {
-          const randomValue = Math.random();
-          const cell = this.getCell(x, y);
-          if (randomValue >= 1 - density) {
-            cell.forceState(1);
-          } else {
-            cell.forceState(0);
-          }
-        }
-      }
-    }
+  fill(density) {
+    this.simulation.logic.fill(this, density);
   }
 
   isInBounds(x, y) {
